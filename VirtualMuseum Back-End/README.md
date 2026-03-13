@@ -46,7 +46,7 @@ For errors: `success: false`, `message` contains the error text.
 
 ---
 
-### Authentication (Public)
+### Authentication (Public – no Authorization header required)
 
 #### Register (User self-registration)
 
@@ -76,6 +76,16 @@ POST /api/auth/register
     "fullName": "John Doe",
     "region": "North America"
   }
+}
+```
+
+**Example tested request (body):**
+```json
+{
+  "fullName": "Doc User",
+  "email": "docuser@example.com",
+  "region": "Europe",
+  "password": "Doc@123"
 }
 ```
 
@@ -118,6 +128,14 @@ POST /api/auth/login
 }
 ```
 
+**Example tested request (body – Admin login):**
+```json
+{
+  "email": "admin@museum.com",
+  "password": "admin@123"
+}
+```
+
 **cURL Example:**
 ```bash
 curl -X POST http://localhost:5209/api/auth/login \
@@ -135,7 +153,7 @@ Submit email. In development, OTP is always `0000`.
 POST /api/auth/forgot-password/request
 ```
 
-**Request Body:**
+**Example tested request (body):**
 ```json
 {
   "email": "john@example.com"
@@ -159,7 +177,7 @@ Submit email, OTP, new password, and confirmation. In development, OTP must be `
 POST /api/auth/forgot-password/reset
 ```
 
-**Request Body:**
+**Example tested request (body):**
 ```json
 {
   "email": "john@example.com",
@@ -178,7 +196,7 @@ curl -X POST http://localhost:5209/api/auth/forgot-password/reset \
 
 ---
 
-### Artifacts (GET anonymous, others require JWT)
+### Artifacts (GET anonymous, POST/PUT/DELETE require JWT)
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -188,22 +206,43 @@ curl -X POST http://localhost:5209/api/auth/forgot-password/reset \
 | PUT | /api/artifacts/{id} | Yes | Update artifact |
 | DELETE | /api/artifacts/{id} | Yes | Delete artifact |
 
-**GET /api/artifacts Example:**
+**Example tested GET (anonymous):**
 ```bash
 curl http://localhost:5209/api/artifacts
 ```
 
-**POST /api/artifacts Example:**
+**Example tested POST (with Admin JWT):**
+
+- First, login as admin to get `token`:
+
 ```bash
-curl -X POST http://localhost:5209/api/artifacts \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"slug":"my-artifact","eraId":"era-guid","categoryId":"cat-guid","height":10,"width":5,"depth":3,"createdBy":"user-guid"}'
+curl -X POST http://localhost:5209/api/auth/login ^
+  -H "Content-Type: application/json" ^
+  -d "{\"email\":\"admin@museum.com\",\"password\":\"admin@123\"}"
+```
+
+- Then call:
+
+```bash
+curl -X POST http://localhost:5209/api/artifacts ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" ^
+  -d "{
+    \"slug\": \"doc-artifact-123\",
+    \"eraId\": \"d3d7880c-bf04-4fbd-b46a-ba7d3b2bcfc1\",
+    \"categoryId\": \"f4775cf7-30e1-447a-aef3-1b5f61012d01\",
+    \"materialId\": \"f565a9a2-8b4b-49c2-9349-fe75d3a89ee3\",
+    \"height\": 1.0,
+    \"width\": 2.0,
+    \"depth\": 3.0,
+    \"weight\": 4.0,
+    \"createdBy\": \"<admin userId from login>\"
+  }"
 ```
 
 ---
 
-### Categories (GET anonymous, others require JWT)
+### Categories (GET anonymous, POST/PUT/DELETE require JWT)
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -213,17 +252,27 @@ curl -X POST http://localhost:5209/api/artifacts \
 | PUT | /api/categories/{id} | Yes | Update |
 | DELETE | /api/categories/{id} | Yes | Delete |
 
-**POST Example:**
+**Example tested POST (with Admin JWT):**
+
 ```bash
-curl -X POST http://localhost:5209/api/categories \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"name":"Sculpture"}'
+curl -X POST http://localhost:5209/api/categories ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" ^
+  -d "{\"name\":\"DocCat-123\"}"
+```
+
+**Example tested PUT (with Admin JWT):**
+
+```bash
+curl -X PUT http://localhost:5209/api/categories/{id} ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" ^
+  -d "{\"name\":\"DocCat-123-Updated\"}"
 ```
 
 ---
 
-### Eras (GET anonymous, others require JWT)
+### Eras (GET anonymous, POST/PUT/DELETE require JWT)
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -233,17 +282,35 @@ curl -X POST http://localhost:5209/api/categories \
 | PUT | /api/eras/{id} | Yes | Update |
 | DELETE | /api/eras/{id} | Yes | Delete |
 
-**POST Example:**
+**Example tested POST (with Admin JWT):**
+
 ```bash
-curl -X POST http://localhost:5209/api/eras \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"name":"Ancient Greece","startYear":-800,"endYear":-146}'
+curl -X POST http://localhost:5209/api/eras ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" ^
+  -d "{
+    \"name\":\"DocEra-123\",
+    \"startYear\": -50,
+    \"endYear\": 50
+  }"
+```
+
+**Example tested PUT (with Admin JWT):**
+
+```bash
+curl -X PUT http://localhost:5209/api/eras/{id} ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" ^
+  -d "{
+    \"name\":\"DocEra-123-Updated\",
+    \"startYear\": -40,
+    \"endYear\": 40
+  }"
 ```
 
 ---
 
-### Materials (GET anonymous, others require JWT)
+### Materials (GET anonymous, POST/PUT/DELETE require JWT)
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -253,17 +320,27 @@ curl -X POST http://localhost:5209/api/eras \
 | PUT | /api/materials/{id} | Yes | Update |
 | DELETE | /api/materials/{id} | Yes | Delete |
 
-**POST Example:**
+**Example tested POST (with Admin JWT):**
+
 ```bash
-curl -X POST http://localhost:5209/api/materials \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"name":"Marble"}'
+curl -X POST http://localhost:5209/api/materials ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" ^
+  -d "{\"name\":\"DocMat-123\"}"
+```
+
+**Example tested PUT (with Admin JWT):**
+
+```bash
+curl -X PUT http://localhost:5209/api/materials/{id} ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" ^
+  -d "{\"name\":\"DocMat-123-Updated\"}"
 ```
 
 ---
 
-### Tags (GET anonymous, others require JWT)
+### Tags (GET anonymous, POST/PUT/DELETE require JWT)
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -273,12 +350,28 @@ curl -X POST http://localhost:5209/api/materials \
 | PUT | /api/tags/{id} | Yes | Update |
 | DELETE | /api/tags/{id} | Yes | Delete |
 
-**POST Example:**
+**Example tested POST (with Admin JWT):**
+
 ```bash
-curl -X POST http://localhost:5209/api/tags \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"name":"Ancient"}'
+curl -X POST http://localhost:5209/api/tags ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" ^
+  -d "{\"name\":\"DocTag-123\"}"
+```
+
+**Example tested GET by id (no auth):**
+
+```bash
+curl http://localhost:5209/api/tags/{id}
+```
+
+**Example tested PUT (with Admin JWT):**
+
+```bash
+curl -X PUT http://localhost:5209/api/tags/{id} ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" ^
+  -d "{\"name\":\"DocTag-123-Updated\"}"
 ```
 
 ---
@@ -293,18 +386,41 @@ curl -X POST http://localhost:5209/api/tags \
 | PUT | /api/users/{id} | Admin | Update user |
 | DELETE | /api/users/{id} | Admin | Delete user |
 
-**GET /api/users Example:**
+**Example tested GET (Admin JWT):**
+
 ```bash
-curl http://localhost:5209/api/users \
+curl http://localhost:5209/api/users ^
   -H "Authorization: Bearer ADMIN_JWT_TOKEN"
 ```
 
-**POST /api/users Example:**
+**Example tested POST (Admin JWT):**
+
 ```bash
-curl -X POST http://localhost:5209/api/users \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ADMIN_JWT_TOKEN" \
-  -d '{"fullName":"New User","email":"new@museum.com","region":"Asia","password":"Pass@123","roleId":"user-role-guid","isActive":true}'
+curl -X POST http://localhost:5209/api/users ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" ^
+  -d "{
+    \"fullName\":\"Api User 1\",
+    \"email\":\"apiuser1@example.com\",
+    \"region\":\"Test\",
+    \"password\":\"Pass@123\",
+    \"roleId\":\"<existing non-admin roleId>\",
+    \"isActive\":true
+  }"
+```
+
+**Example tested PUT (Admin JWT):**
+
+```bash
+curl -X PUT http://localhost:5209/api/users/{id} ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN" ^
+  -d "{
+    \"fullName\":\"Api User 1 Updated\",
+    \"email\":\"apiuser1@example.com\",
+    \"region\":\"Test2\",
+    \"isActive\":false
+  }"
 ```
 
 ---
