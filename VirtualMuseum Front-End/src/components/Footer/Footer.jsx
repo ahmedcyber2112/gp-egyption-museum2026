@@ -2,7 +2,6 @@ import React from 'react';
 import Image from 'next/image';
 import { Mail, Phone, MapPin, Ticket, Award, Globe ,Smartphone, QrCode } from 'lucide-react';
 import { FaFacebookF, FaTwitter, FaInstagram, FaYoutube } from 'react-icons/fa';
-import img from '../../../public/assets/images/Logo for Grand Egyptian Museum.png';
 
 const PremiumFooter = () => {
   return (
@@ -35,7 +34,7 @@ const PremiumFooter = () => {
             <div className="flex items-center gap-3">
               <div className="bg-gradient-to-br from-[#D4AF37] to-[#8A6D3B] p-2 rounded-xl flex items-center justify-center">
                 <Image
-                  src={img} // الصورة اللي معاك حالياً
+                  src="/assets/images/Logo for Grand Egyptian Museum.png"
                   alt="Grand Egyptian Museum Logo"
                   width={40}
                   height={40}

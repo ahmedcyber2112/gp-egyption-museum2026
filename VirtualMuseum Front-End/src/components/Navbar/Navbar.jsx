@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 import { Search, Heart, Bookmark, Menu, X, Sparkles, ChevronRight, Clock } from 'lucide-react';
-import gemLogo from '../../../public/assets/images/Logo for Grand Egyptian Museum.png'; // مسار اللوجو بتاعك
 
 // =====================================================================
 // 1. مكون الزرار المغناطيسي (Magnetic Hover Effect)
@@ -139,7 +138,7 @@ const PharaohNavbar = () => {
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-3 min-w-max cursor-pointer group">
               <div className="bg-gradient-to-br from-[#D4AF37] to-[#8A6D3B] p-1.5 rounded-lg shadow-[0_0_15px_rgba(212,175,55,0.3)] group-hover:shadow-[0_0_25px_rgba(212,175,55,0.6)] transition-all duration-300">
-                <Image src={gemLogo} alt="GEM Logo" width={35} height={35} className="mix-blend-multiply brightness-90" />
+                <Image src="/assets/images/Logo for Grand Egyptian Museum.png" alt="GEM Logo" width={35} height={35} className="mix-blend-multiply brightness-90" />
               </div>
               <div className="hidden lg:flex flex-col">
                 <span className="text-white font-serif font-bold leading-none text-lg tracking-tight group-hover:text-[#D4AF37] transition-colors">The GEM</span>
