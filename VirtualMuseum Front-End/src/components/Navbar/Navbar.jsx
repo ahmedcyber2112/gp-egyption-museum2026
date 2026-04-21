@@ -99,7 +99,7 @@ const PharaohNavbar = () => {
       setIsOpen(hour >= 9 && hour < 17);
     };
     updateTime();
-    const timer = setInterval(updateTime, 1000);
+    const timer = setInterval(updateTime, 60000);
 
     return () => {
       window.removeEventListener('update_saved', updateCounts);
@@ -153,7 +153,7 @@ const PharaohNavbar = () => {
               </div>
             </Link>
 
-            <div className={`hidden xl:flex items-center gap-2 border-l pl-6 ${isLightTheme ? 'border-black/15' : 'border-white/10'}`}>
+            <div className={`hidden lg:flex items-center gap-2 border-l pl-6 ${isLightTheme ? 'border-black/15' : 'border-white/10'}`}>
               <div className="flex flex-col">
                 <span className={`text-[9px] tracking-widest uppercase flex items-center gap-1 ${isLightTheme ? 'text-[#6f5b2e]' : 'text-gray-400'}`}>
                   <Clock size={10} /> Cairo Time
@@ -168,7 +168,7 @@ const PharaohNavbar = () => {
           </div>
 
           {/* Navigation & Mega Menu */}
-          <ul className={`hidden xl:flex items-center gap-8 text-sm font-medium h-full ${isLightTheme ? 'text-[#6a5423]' : 'text-gray-300'}`}>
+          <ul className={`hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-medium h-full ${isLightTheme ? 'text-[#6a5423]' : 'text-gray-300'}`}>
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
@@ -188,7 +188,7 @@ const PharaohNavbar = () => {
                     <div className="absolute top-full left-1/2 -translate-x-1/2 w-200 bg-[#0a0a0f]/95 backdrop-blur-3xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] rounded-3xl opacity-0 invisible group-hover/nav:opacity-100 group-hover/nav:visible transition-all duration-500 transform translate-y-4 group-hover/nav:translate-y-0 p-8 grid grid-cols-3 gap-6 pointer-events-none group-hover/nav:pointer-events-auto">
                       <Link href="/Categories?filter=Statues" className="group/card relative overflow-hidden rounded-2xl h-48 cursor-pointer">
                         <div className="absolute inset-0 bg-black/40 group-hover/card:bg-black/20 transition-colors z-10"></div>
-                        <Image src="/assets/images/nefertiti.png" alt="Statues" layout="fill" objectFit="cover" className="group-hover/card:scale-110 transition-transform duration-700" />
+                        <Image src="/assets/images/nefertiti.png" alt="Statues" fill sizes="33vw" className="object-cover group-hover/card:scale-110 transition-transform duration-700" />
                         <div className="absolute bottom-0 left-0 w-full p-4 z-20 bg-linear-to-t from-black to-transparent">
                           <h4 className="text-white font-serif text-lg font-bold">Statues</h4>
                           <span className="text-[#D4AF37] text-[10px] uppercase tracking-widest flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity transform translate-y-2 group-hover/card:translate-y-0">Explore <ChevronRight size={12}/></span>
@@ -197,7 +197,7 @@ const PharaohNavbar = () => {
 
                       <Link href="/Categories?filter=Jewelry" className="group/card relative overflow-hidden rounded-2xl h-48 cursor-pointer">
                         <div className="absolute inset-0 bg-black/40 group-hover/card:bg-black/20 transition-colors z-10"></div>
-                        <Image src="/assets/images/tut-mask.jpg" alt="Jewelry" layout="fill" objectFit="cover" className="group-hover/card:scale-110 transition-transform duration-700" />
+                        <Image src="/assets/images/tut-mask.jpg" alt="Jewelry" fill sizes="33vw" className="object-cover group-hover/card:scale-110 transition-transform duration-700" />
                         <div className="absolute bottom-0 left-0 w-full p-4 z-20 bg-linear-to-t from-black to-transparent">
                           <h4 className="text-white font-serif text-lg font-bold">Jewelry</h4>
                           <span className="text-[#D4AF37] text-[10px] uppercase tracking-widest flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity transform translate-y-2 group-hover/card:translate-y-0">Explore <ChevronRight size={12}/></span>
@@ -206,7 +206,7 @@ const PharaohNavbar = () => {
 
                       <Link href="/Categories?filter=Papyri" className="group/card relative overflow-hidden rounded-2xl h-48 cursor-pointer">
                         <div className="absolute inset-0 bg-black/40 group-hover/card:bg-black/20 transition-colors z-10"></div>
-                        <Image src="/assets/images/rosetta.webp" alt="Papyri" layout="fill" objectFit="cover" className="group-hover/card:scale-110 transition-transform duration-700" />
+                        <Image src="/assets/images/rosetta.webp" alt="Papyri" fill sizes="33vw" className="object-cover group-hover/card:scale-110 transition-transform duration-700" />
                         <div className="absolute bottom-0 left-0 w-full p-4 z-20 bg-linear-to-t from-black to-transparent">
                           <h4 className="text-white font-serif text-lg font-bold">Ancient Papyri</h4>
                           <span className="text-[#D4AF37] text-[10px] uppercase tracking-widest flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity transform translate-y-2 group-hover/card:translate-y-0">Explore <ChevronRight size={12}/></span>
@@ -262,7 +262,7 @@ const PharaohNavbar = () => {
                 </Link>
               </Magnetic>
               
-              <button className={`xl:hidden hover:text-[#D4AF37] transition-colors ${isLightTheme ? 'text-[#25190a]' : 'text-white'}`} onClick={() => setIsMobileMenuOpen(true)}>
+              <button className={`lg:hidden hover:text-[#D4AF37] transition-colors ${isLightTheme ? 'text-[#25190a]' : 'text-white'}`} onClick={() => setIsMobileMenuOpen(true)}>
                 <Menu size={28} />
               </button>
             </div>

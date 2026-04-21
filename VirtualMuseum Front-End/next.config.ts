@@ -1,12 +1,3 @@
-// import type { NextConfig } from "next";
-
-// const nextConfig: NextConfig = {
-//   /* config options here */
-// };
-
-
-// export default nextConfig;
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -20,6 +11,15 @@ const nextConfig = {
       { protocol: 'https', hostname: 'preview.redd.it' },
       { protocol: 'https', hostname: 'w7.pngwing.com' },
       { protocol: 'https', hostname: 'img.freepik.com' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'i.pravatar.cc' },
+      { protocol: 'https', hostname: 'media-cdn.tripadvisor.com' },
+      { protocol: 'https', hostname: 'dynamic-media-cdn.tripadvisor.com' },     
+      { protocol: 'https', hostname: 'deltalighting.me' },
+      { protocol: 'https', hostname: 'art50.net' },
+      { protocol: 'https', hostname: 'www.cairo24.com' },
+      { protocol: 'https', hostname: 'newsroom.info' },
+      { protocol: 'https', hostname: 'artdogistanbul.com' },
     ],
   },
   experimental: {
@@ -28,4 +28,3 @@ const nextConfig = {
 };
 
 export default nextConfig;
-

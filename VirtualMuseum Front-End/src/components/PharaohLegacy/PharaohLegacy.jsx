@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 // استيراد جميع أيقونات Lucide
@@ -56,16 +57,20 @@ export default function PharaohLegacy() {
                             initial={{ opacity: 0, y: 40 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.2, duration: 0.8 }}
-                            className="group relative h-[580px] rounded-[3rem] overflow-hidden bg-[#0a0a0f] shadow-2xl"
+                            className="group relative h-145 rounded-[3rem] overflow-hidden bg-[#0a0a0f] shadow-2xl"
                         >
                             {/* الصورة الخلفية */}
                             <div className="absolute inset-0 z-0">
-                                <img
+                                <Image
                                     src={cat.image}
                                     alt={cat.name}
-                                    className="w-full h-full object-cover opacity-50 group-hover:opacity-70 group-hover:scale-110 transition-all duration-[2s] ease-out"
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, 33vw"
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="object-cover opacity-50 group-hover:opacity-70 group-hover:scale-110 transition-all duration-[2s] ease-out"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-[#0a0a0f]/20 to-transparent z-10" />
+                                <div className="absolute inset-0 bg-linear-to-t from-[#0a0a0f] via-[#0a0a0f]/20 to-transparent z-10" />
                             </div>
 
                             {/* الاسم بالهيروغليفية - لمسة جمالية في الخلفية */}

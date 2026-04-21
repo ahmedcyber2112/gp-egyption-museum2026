@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Star, MapPin, Clock, ArrowRight, History, Sparkles } from 'lucide-react';
 
@@ -66,10 +67,14 @@ export default function FeaturedArtifacts() {
 
               {/* صورة القطعة */}
               <div className="relative h-72 flex justify-center items-end p-8 transform group-hover:-translate-y-4 transition-transform duration-700 ease-out z-10">
-                <img
+                <Image
                   src={art.image}
                   alt={art.name}
-                  className="max-h-full object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)]"
+                  width={520}
+                  height={520}
+                  loading="lazy"
+                  decoding="async"
+                  className="max-h-full w-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)]"
                 />
               </div>
 

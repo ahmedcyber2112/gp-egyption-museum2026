@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Clock, MapPin, User, CheckCircle2, Ticket, ArrowLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 type Guide = {
   id: number;
@@ -133,7 +134,7 @@ export default function BookTourPage() {
                       onClick={() => setSelectedGuide(guide)}
                       className={`flex items-center gap-4 p-4 rounded-2xl cursor-pointer border transition-all ${selectedGuide?.id === guide.id ? 'bg-[#D4AF37]/10 border-[#D4AF37]' : 'bg-[#111] border-white/5 hover:border-white/20'}`}
                     >
-                      <img src={guide.image} alt={guide.name} className="w-16 h-16 rounded-full object-cover" />
+                      <Image src={guide.image} alt={guide.name} width={64} height={64} loading="lazy" decoding="async" className="w-16 h-16 rounded-full object-cover" />
                       <div>
                         <h4 className="font-bold text-lg">{guide.name}</h4>
                         <p className="text-gray-500 text-xs uppercase tracking-widest">{guide.specialty}</p>
@@ -177,7 +178,7 @@ export default function BookTourPage() {
                         key={loc.id} onClick={() => toggleLocation(loc)}
                         className={`relative h-32 rounded-2xl overflow-hidden cursor-pointer border-2 transition-all ${isSelected ? 'border-[#D4AF37]' : 'border-transparent hover:border-white/20'}`}
                       >
-                        <img src={loc.image} alt={loc.name} className="w-full h-full object-cover opacity-50" />
+                        <Image src={loc.image} alt={loc.name} fill sizes="(max-width: 768px) 100vw, 50vw" loading="lazy" decoding="async" className="object-cover opacity-50" />
                         <div className="absolute inset-0 bg-linear-to-t from-black via-black/50 to-transparent"></div>
                         <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
                           <h4 className="font-bold leading-tight">{loc.name}</h4>

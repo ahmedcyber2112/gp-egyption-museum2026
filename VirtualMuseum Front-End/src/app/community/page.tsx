@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, MessageCircle, ImageIcon, Send, Share2, MoreHorizontal, MapPin, BadgeCheck, Map, Sparkles, CornerDownRight } from 'lucide-react';
 import Link from 'next/link';
@@ -216,7 +217,7 @@ export default function CommunityPage() {
                   <div className="flex items-start justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <div className="relative">
-                        <img src={post.avatar} alt={post.user} className="w-14 h-14 rounded-full object-cover border-2 border-transparent" style={{ borderColor: post.isVerified ? '#D4AF37' : 'transparent' }} />
+                        <Image src={post.avatar} alt={post.user} width={56} height={56} loading="lazy" decoding="async" className="w-14 h-14 rounded-full object-cover border-2 border-transparent" style={{ borderColor: post.isVerified ? '#D4AF37' : 'transparent' }} />
                         {post.isVerified && (
                           <div className="absolute -bottom-1 -right-1 bg-black rounded-full p-0.5">
                             <BadgeCheck size={18} className="text-[#D4AF37] fill-[#D4AF37]/20" />
@@ -252,7 +253,7 @@ export default function CommunityPage() {
                   {/* Post Image */}
                   {post.image && (
                     <div className="relative w-full h-72 md:h-96 rounded-2xl overflow-hidden mb-6 border border-white/10 group cursor-pointer">
-                      <img src={post.image} alt="Post attachment" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                      <Image src={post.image} alt="Post attachment" fill sizes="(max-width: 768px) 100vw, 800px" loading="lazy" decoding="async" className="object-cover group-hover:scale-105 transition-transform duration-700" />
                     </div>
                   )}
 
@@ -316,7 +317,7 @@ export default function CommunityPage() {
                             <div className="space-y-4 mb-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                               {post.commentsList.map(comment => (
                                 <div key={comment.id} className="flex gap-3">
-                                  <img src={comment.avatar} alt={comment.user} className="w-8 h-8 rounded-full object-cover shrink-0" />
+                                  <Image src={comment.avatar} alt={comment.user} width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 rounded-full object-cover shrink-0" />
                                   <div className="bg-white/5 rounded-2xl rounded-tl-none px-4 py-2.5 max-w-[90%]">
                                     <h5 className="text-white text-xs font-bold mb-1">{comment.user}</h5>
                                     <p className="text-gray-300 text-sm">{comment.text}</p>
@@ -332,7 +333,7 @@ export default function CommunityPage() {
 
                           {/* مربع إضافة تعليق جديد */}
                           <form onSubmit={(e) => handleAddComment(e, post.id)} className="flex gap-3 items-center relative mt-2 border-t border-white/5 pt-4">
-                            <img src="https://i.pravatar.cc/150?img=33" alt="You" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                            <Image src="https://i.pravatar.cc/150?img=33" alt="You" width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 rounded-full object-cover shrink-0" />
                             <div className="relative flex-1">
                               <input 
                                 type="text" 
