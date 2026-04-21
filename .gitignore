@@ -1,0 +1,59 @@
+# ------------------------------------------------------------
+# Global ignores for GP-Egyption-Museum2026 (.NET + Next.js)
+# ------------------------------------------------------------
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editors / IDE
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# -------------------------
+# .NET / C# build artifacts
+# -------------------------
+**/[Bb]in/
+**/[Oo]bj/
+**/TestResults/
+**/artifacts/
+
+# NuGet packages and symbols
+*.nupkg
+*.snupkg
+
+# -------------------------
+# Node.js / Next.js outputs
+# -------------------------
+**/node_modules/
+**/.next/
+**/out/
+**/coverage/
+**/.turbo/
+**/.vercel/
+
+# Package manager debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment files (keep examples tracked)
+.env
+.env.*
+!.env.example
+
+# TypeScript build info
+**/*.tsbuildinfo
+
+# Next.js generated type file
+**/next-env.d.ts
