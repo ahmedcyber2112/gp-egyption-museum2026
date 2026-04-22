@@ -2,10 +2,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 import { Search, Heart, Bookmark, Menu, X, Sparkles, ChevronRight, Clock } from 'lucide-react';
 import { useThemeScheduler } from '../Theme/ThemeSchedulerProvider';
+import { clearAuthSession, getCurrentUser, isLoggedIn as isLoggedInFn } from '../../lib/authStorage';
 
 // =====================================================================
 // 1. مكون الزرار المغناطيسي (Magnetic Hover Effect)
@@ -45,6 +46,7 @@ const Magnetic = ({ children, className }) => {
 // 2. المكون الرئيسي (Pharaoh Navbar)
 // =====================================================================
 const PharaohNavbar = () => {
+  const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cairoTime, setCairoTime] = useState("");
@@ -54,6 +56,10 @@ const PharaohNavbar = () => {
   const { resolvedTheme } = useThemeScheduler();
   const pathname = usePathname();
   const isLightTheme = resolvedTheme === 'light';
+  const [authReady, setAuthReady] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const isAdmin = (currentUser?.role || "").toLowerCase() === "admin";
 
   // ميزة شريط السكرول الملكي (Golden Scroll Progress)
   const { scrollYProgress } = useScroll();
@@ -109,6 +115,33 @@ const PharaohNavbar = () => {
       clearInterval(timer);
     };
   }, []);
+
+  useEffect(() => {
+    const syncAuth = () => {
+      try {
+        const ok = isLoggedInFn();
+        setLoggedIn(ok);
+        setCurrentUser(ok ? getCurrentUser() : null);
+        setAuthReady(true);
+      } catch {
+        setLoggedIn(false);
+        setCurrentUser(null);
+        setAuthReady(true);
+      }
+    };
+
+    syncAuth();
+    window.addEventListener('storage', syncAuth);
+    return () => window.removeEventListener('storage', syncAuth);
+  }, []);
+
+  const onLogout = () => {
+    clearAuthSession();
+    setLoggedIn(false);
+    setCurrentUser(null);
+    window.dispatchEvent(new Event('storage'));
+    router.push("/Signin");
+  };
 
   return (
     <>
@@ -250,9 +283,29 @@ const PharaohNavbar = () => {
             </div>
             
             <div className="flex items-center gap-6">
-              <Link href="/Signin" className={`text-[11px] uppercase tracking-widest font-bold hidden md:block transition-colors hover:text-[#D4AF37] ${isLightTheme ? 'text-[#3d2c0f]' : 'text-gray-300'}`}>
-                Sign In
-              </Link>
+              {authReady && loggedIn ? (
+                <div className="hidden md:flex items-center gap-4">
+                  {isAdmin && (
+                    <Link href="/dashboard" className={`text-[11px] uppercase tracking-widest font-bold transition-colors hover:text-[#D4AF37] ${isLightTheme ? 'text-[#3d2c0f]' : 'text-gray-300'}`}>
+                      Dashboard
+                    </Link>
+                  )}
+                  <Link href="/profile" className={`text-[11px] uppercase tracking-widest font-bold transition-colors hover:text-[#D4AF37] ${isLightTheme ? 'text-[#3d2c0f]' : 'text-gray-300'}`}>
+                    {currentUser?.fullName ? currentUser.fullName.split(" ")[0] : "Profile"}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    className={`text-[11px] uppercase tracking-widest font-bold transition-colors hover:text-[#D4AF37] ${isLightTheme ? 'text-[#3d2c0f]' : 'text-gray-300'}`}
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <Link href="/Signin" className={`text-[11px] uppercase tracking-widest font-bold hidden md:block transition-colors hover:text-[#D4AF37] ${isLightTheme ? 'text-[#3d2c0f]' : 'text-gray-300'}`}>
+                  Sign In
+                </Link>
+              )}
               
               <Magnetic>
                 <Link href="/Booking" className="hidden sm:block">
@@ -305,9 +358,25 @@ const PharaohNavbar = () => {
                   <div className="flex flex-col items-center gap-1 cursor-pointer"><Heart size={24} /><span className="text-[10px] uppercase">Saved ({lovedCount})</span></div>
                   <div className="flex flex-col items-center gap-1 cursor-pointer"><Bookmark size={24} /><span className="text-[10px] uppercase">Bookmarks ({savedCount})</span></div>
                 </div>
-                <Link href="/Signin" onClick={() => setIsMobileMenuOpen(false)} className={`text-sm uppercase tracking-widest ${isLightTheme ? 'text-[#544420] hover:text-[#201407]' : 'text-gray-400 hover:text-white'}`}>
-                  Sign In to Account
-                </Link>
+                {authReady && loggedIn ? (
+                  <>
+                    {isAdmin && (
+                      <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className={`text-sm uppercase tracking-widest ${isLightTheme ? 'text-[#544420] hover:text-[#201407]' : 'text-gray-400 hover:text-white'}`}>
+                        Dashboard
+                      </Link>
+                    )}
+                    <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className={`text-sm uppercase tracking-widest ${isLightTheme ? 'text-[#544420] hover:text-[#201407]' : 'text-gray-400 hover:text-white'}`}>
+                      My Profile
+                    </Link>
+                    <button type="button" onClick={() => { setIsMobileMenuOpen(false); onLogout(); }} className={`text-sm uppercase tracking-widest ${isLightTheme ? 'text-[#544420] hover:text-[#201407]' : 'text-gray-400 hover:text-white'}`}>
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <Link href="/Signin" onClick={() => setIsMobileMenuOpen(false)} className={`text-sm uppercase tracking-widest ${isLightTheme ? 'text-[#544420] hover:text-[#201407]' : 'text-gray-400 hover:text-white'}`}>
+                    Sign In to Account
+                  </Link>
+                )}
               </motion.div>
             </div>
           </motion.div>

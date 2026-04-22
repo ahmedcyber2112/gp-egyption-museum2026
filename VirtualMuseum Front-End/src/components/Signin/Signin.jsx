@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loginUser } from "../../lib/authApi";
 import { setAuthSession } from "../../lib/authStorage";
+import GoogleAuthButton from "../Auth/GoogleAuthButton";
 
 export default function Signin() {
     const router = useRouter();
@@ -152,11 +153,11 @@ export default function Signin() {
                             />
                             Remember me
                         </label>
-                        <a
-                            href="#"
+                        <Link
+                            href="/forgot-password"
                             className="text-[#D4AF37] hover:text-[#B8950A] font-semibold">
                             Forgot?
-                        </a>
+                        </Link>
                     </div>
 
                     {/* Login Button */}
@@ -177,24 +178,7 @@ export default function Signin() {
                     </div>
 
                     {/* Google Button */}
-                    <button
-                        type="button"
-                        className="w-full bg-white border border-gray-200 text-gray-700 py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition-all active:scale-95">
-                        <svg
-                            className="w-4 h-4"
-                            viewBox="0 0 24 24"
-                            fill="currentColor">
-                            <circle cx="12" cy="12" r="10" fill="#1f2937" />
-                            <circle cx="12" cy="12" r="9" fill="white" />
-                            <path
-                                d="M7 12a5 5 0 1 1 10 0 5 5 0 0 1-10 0z"
-                                fill="#EA4335"
-                            />
-                            <circle cx="16" cy="12" r="2" fill="#34A853" />
-                            <circle cx="8" cy="8" r="2" fill="#FBBC05" />
-                        </svg>
-                        Google
-                    </button>
+                    <GoogleAuthButton />
                 </form>
 
                 {/* Sign Up Link */}

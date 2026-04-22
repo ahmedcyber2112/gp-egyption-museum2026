@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cinzel } from 'next/font/google'; 
 import { 
@@ -9,6 +9,7 @@ import {
   Settings, Menu, LogOut, Bell, Search, Layers, Box, Activity, Pyramid, X
 } from 'lucide-react';
 import { EgyptianPattern } from "./EgyptianPattern";
+import { clearAuthSession, getCurrentUser, getAccessToken } from "../../lib/authStorage";
 
 const cinzel = Cinzel({ 
   subsets: ['latin'],
@@ -16,14 +17,39 @@ const cinzel = Cinzel({
 });
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+  const [adminName, setAdminName] = useState("Admin");
   const pathname = usePathname();
 
   // إغلاق قائمة الجوال عند تغيير الصفحة
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    // Client-side guard for admin routes.
+    // Backend APIs are role-protected already; this prevents UI access too.
+    const token = getAccessToken();
+    const currentUser = getCurrentUser();
+    const role = (currentUser?.role || "").toLowerCase();
+
+    if (!token || role !== "admin") {
+      clearAuthSession();
+      router.replace("/Signin");
+      return;
+    }
+
+    setAdminName(currentUser?.fullName || "Admin");
+    setAuthReady(true);
+  }, [router]);
+
+  const handleLogout = () => {
+    clearAuthSession();
+    router.push("/Signin");
+  };
 
   const menuItems = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
@@ -69,13 +95,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </nav>
 
       <div className="p-4 border-t border-white/5">
-         <button className="w-full flex items-center gap-4 px-3 py-3 rounded-xl text-gray-500 hover:text-red-500 transition-all group">
+         <button
+           type="button"
+           onClick={handleLogout}
+           className="w-full flex items-center gap-4 px-3 py-3 rounded-xl text-gray-500 hover:text-red-500 transition-all group"
+         >
            <LogOut size={20} />
            {(isSidebarOpen || isMobileMenuOpen) && <span className="text-[10px] font-bold uppercase tracking-widest">Logout System</span>}
          </button>
       </div>
     </>
   );
+
+  if (!authReady) {
+    return (
+      <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
+        <div className="text-xs uppercase tracking-widest text-gray-400">Checking admin access...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex h-screen bg-[#050505] text-white overflow-hidden relative`}>
@@ -150,6 +188,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex items-center gap-2 md:gap-3 pl-3 md:pl-4 border-l border-white/10">
                 <div className="text-right hidden md:block">
                     <p className="text-[10px] font-bold text-white uppercase">Admin</p>
+                    <p className="text-[10px] text-gray-400">{adminName}</p>
                 </div>
                 <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-[#D4AF37] text-black flex items-center justify-center font-black text-xs">AD</div>
             </div>

@@ -1,7 +1,6 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-// استبدال الأيقونات بأخرى تعبر عن التاريخ والتحكم بشكل أعمق
 import { 
   PlusCircle, 
   Settings2, 
@@ -11,37 +10,100 @@ import {
   Hourglass, 
   Map 
 } from "lucide-react";
-
-// --- الداتا الوهمية للعصور التاريخية ---
-const erasData = [
-  {
-    id: 1,
-    name: "Pharaonic",
-    period: "3100 BCE - 332 BCE",
-    artifactCount: 1847,
-    description: "The foundation of Egyptian identity, from the Early Dynastic Period to the Late Period.",
-    color: "#d4af37",
-  },
-  {
-    id: 2,
-    name: "Greek (Ptolemaic)",
-    period: "332 BCE - 30 BCE",
-    artifactCount: 562,
-    description: "The era of fusion between Hellenistic culture and ancient Egyptian traditions.",
-    color: "#c19a6b",
-  },
-  {
-    id: 3,
-    name: "Roman",
-    period: "30 BCE - 641 CE",
-    artifactCount: 438,
-    description: "Egypt as the breadbasket of Rome, featuring unique Greco-Roman artistic influences.",
-    color: "#8b6f47",
-  },
-];
+import { createEra, deleteEra, getAdminEras, updateEra } from "../../../lib/adminApi";
 
 export default function HistoricalEras() {
+  const [eras, setEras] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [startYear, setStartYear] = useState("");
+  const [endYear, setEndYear] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await getAdminEras();
+      setEras(Array.isArray(res?.data) ? res.data : []);
+    } catch (e: any) {
+      setError(e?.message || "Failed to load eras.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const openCreate = () => {
+    setEditingId(null);
+    setName("");
+    setStartYear("");
+    setEndYear("");
+    setShowAddModal(true);
+    setError("");
+    setSuccess("");
+  };
+
+  const openEdit = (era: any) => {
+    setEditingId(era.id);
+    setName(era.name || "");
+    setStartYear(era.startYear ?? "");
+    setEndYear(era.endYear ?? "");
+    setShowAddModal(true);
+    setError("");
+    setSuccess("");
+  };
+
+  const saveEra = async () => {
+    if (!name.trim()) {
+      setError("Era name is required.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      const payload: any = {
+        name: name.trim(),
+        startYear: startYear === "" ? null : Number(startYear),
+        endYear: endYear === "" ? null : Number(endYear),
+      };
+      if (editingId) {
+        await updateEra(editingId, payload);
+        setSuccess("Era updated.");
+      } else {
+        await createEra(payload);
+        setSuccess("Era created.");
+      }
+      setShowAddModal(false);
+      await load();
+    } catch (e: any) {
+      setError(e?.message || "Failed to save era.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeEra = async (era: any) => {
+    if (!window.confirm(`Delete era "${era.name}"?`)) return;
+    setError("");
+    setSuccess("");
+    try {
+      await deleteEra(era.id);
+      setSuccess("Era deleted.");
+      await load();
+    } catch (e: any) {
+      setError(e?.message || "Failed to delete era.");
+    }
+  };
 
   return (
     <div className="p-8 space-y-10 min-h-screen">
@@ -53,7 +115,7 @@ export default function HistoricalEras() {
           <p className="text-gray-400 text-sm">Define and manage the historical timelines of the GEM collection.</p>
         </div>
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={openCreate}
           className="flex items-center justify-center gap-2 px-6 py-3 bg-[#D4AF37] text-black font-black uppercase tracking-tighter rounded-xl hover:bg-[#b5952f] transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)] active:scale-95"
         >
           <PlusCircle className="w-5 h-5" /> {/* أيقونة إضافة دائرية أشيك */}
@@ -61,9 +123,19 @@ export default function HistoricalEras() {
         </button>
       </div>
 
+      {(error || success) && (
+        <div className="space-y-2">
+          {error ? <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-300 text-sm">{error}</div> : null}
+          {success ? <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-300 text-sm">{success}</div> : null}
+        </div>
+      )}
+
       {/* ================= Eras Grid ================= */}
+      {loading ? (
+        <div className="text-gray-400 text-sm">Loading eras...</div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {erasData.map((era, index) => (
+        {eras.map((era, index) => (
           <motion.div 
             key={era.id}
             initial={{ opacity: 0, y: 30 }}
@@ -80,16 +152,16 @@ export default function HistoricalEras() {
             <div className="flex items-start justify-between mb-8 relative z-10">
               <div
                 className="w-14 h-14 rounded-2xl flex items-center justify-center border border-white/5 shadow-inner transition-transform duration-500 group-hover:rotate-[360deg]"
-                style={{ backgroundColor: `${era.color}15` }}
+                style={{ backgroundColor: `#d4af3720` }}
               >
-                <History className="w-7 h-7" style={{ color: era.color }} /> {/* أيقونة التاريخ بدلاً من الساعة */}
+                <History className="w-7 h-7 text-[#d4af37]" />
               </div>
               <div className="flex gap-2">
-                <button className="p-2 text-gray-500 hover:text-[#D4AF37] hover:bg-white/5 rounded-full transition-all">
-                  <Settings2 size={18} /> {/* أيقونة إعدادات متقدمة بدلاً من التعديل التقليدي */}
+                <button onClick={() => openEdit(era)} className="p-2 text-gray-500 hover:text-[#D4AF37] hover:bg-white/5 rounded-full transition-all">
+                  <Settings2 size={18} />
                 </button>
-                <button className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/5 rounded-full transition-all">
-                  <Eraser size={18} /> {/* أيقونة ممحاة تعبيراً عن المسح التاريخي */}
+                <button onClick={() => removeEra(era)} className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/5 rounded-full transition-all">
+                  <Eraser size={18} />
                 </button>
               </div>
             </div>
@@ -100,19 +172,13 @@ export default function HistoricalEras() {
                   {era.name}
                 </h3>
                 <div className="flex items-center gap-2 text-[#D4AF37] text-[10px] font-black uppercase tracking-widest bg-[#D4AF37]/5 px-3 py-1 rounded-full w-fit border border-[#D4AF37]/20">
-                  <Hourglass size={10} /> {era.period} {/* الساعة الرملية تعبر عن الزمن */}
+                  <Hourglass size={10} /> {(era.startYear ?? "N/A")} - {(era.endYear ?? "N/A")}
                 </div>
               </div>
 
-              <p className="text-gray-400 text-sm leading-relaxed line-clamp-3 font-medium">
-                {era.description}
-              </p>
-
               <div className="pt-6 border-t border-white/5 flex items-center justify-between">
-                <span className="text-[10px] uppercase font-bold text-gray-600 tracking-[0.2em]">Archived Assets</span>
-                <span className="text-xl font-mono font-bold text-white">
-                  {era.artifactCount.toLocaleString()}
-                </span>
+                <span className="text-[10px] uppercase font-bold text-gray-600 tracking-[0.2em]">Identifier</span>
+                <span className="text-xs font-mono font-bold text-white">{era.id}</span>
               </div>
             </div>
             
@@ -123,6 +189,7 @@ export default function HistoricalEras() {
           </motion.div>
         ))}
       </div>
+      )}
 
       {/* ================= Add Era Modal ================= */}
       <AnimatePresence>
@@ -146,7 +213,7 @@ export default function HistoricalEras() {
                    </div>
                    <h2 className="text-2xl font-serif font-bold text-white">New Historical Era</h2>
                 </div>
-                <button onClick={() => setShowAddModal(false)} className="p-2 text-gray-500 hover:text-white transition-colors bg-white/5 rounded-full">
+                <button onClick={() => !saving && setShowAddModal(false)} className="p-2 text-gray-500 hover:text-white transition-colors bg-white/5 rounded-full">
                   <XCircle size={20} /> {/* أيقونة غلق دائرية */}
                 </button>
               </div>
@@ -156,6 +223,8 @@ export default function HistoricalEras() {
                   <label className="block text-[10px] font-black text-[#D4AF37] uppercase tracking-[0.2em] mb-3">Era Designation</label>
                   <input
                     type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all font-medium"
                     placeholder="e.g., Middle Kingdom"
                   />
@@ -163,28 +232,30 @@ export default function HistoricalEras() {
 
                 <div>
                   <label className="block text-[10px] font-black text-[#D4AF37] uppercase tracking-[0.2em] mb-3">Time Range</label>
-                  <input
-                    type="text"
-                    className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all font-medium"
-                    placeholder="e.g., 2055 BCE – 1650 BCE"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black text-[#D4AF37] uppercase tracking-[0.2em] mb-3">Historical Narrative</label>
-                  <textarea
-                    rows={3}
-                    className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all resize-none font-medium"
-                    placeholder="Describe the significance of this era..."
-                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="number"
+                      value={startYear}
+                      onChange={(e) => setStartYear(e.target.value)}
+                      className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all font-medium"
+                      placeholder="Start Year"
+                    />
+                    <input
+                      type="number"
+                      value={endYear}
+                      onChange={(e) => setEndYear(e.target.value)}
+                      className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all font-medium"
+                      placeholder="End Year"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex gap-4 pt-6">
-                  <button className="flex-1 px-6 py-4 bg-[#D4AF37] text-black font-black uppercase tracking-widest rounded-2xl hover:bg-[#b5952f] transition-all shadow-xl active:scale-95">
-                    Save Era
+                  <button onClick={saveEra} disabled={saving} className="flex-1 px-6 py-4 bg-[#D4AF37] text-black font-black uppercase tracking-widest rounded-2xl hover:bg-[#b5952f] transition-all shadow-xl active:scale-95 disabled:opacity-60">
+                    {saving ? "Saving..." : "Save Era"}
                   </button>
                   <button
-                    onClick={() => setShowAddModal(false)}
+                    onClick={() => !saving && setShowAddModal(false)}
                     className="flex-1 px-6 py-4 bg-white/5 text-gray-400 font-bold rounded-2xl hover:bg-white/10 transition-all border border-white/10"
                   >
                     Discard

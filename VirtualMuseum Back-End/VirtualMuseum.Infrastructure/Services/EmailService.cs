@@ -28,7 +28,7 @@ public class EmailService : IEmailService
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(
             smtpSection["SenderName"] ?? "Virtual Museum",
-            smtpSection["SenderEmail"] ?? smtpSection["Username"]));
+            smtpSection["SenderEmail"] ?? smtpSection["Username"] ?? "no-reply@virtualmuseum.local"));
         message.To.Add(MailboxAddress.Parse(to));
         message.Subject = subject;
         message.Body = new TextPart("plain") { Text = body };
@@ -36,11 +36,22 @@ public class EmailService : IEmailService
         using var client = new SmtpClient();
         var server = smtpSection["SmtpServer"] ?? throw new InvalidOperationException("Smtp:SmtpServer is not configured");
         var port = int.TryParse(smtpSection["Port"], out var p) ? p : 587;
-        var username = smtpSection["Username"] ?? throw new InvalidOperationException("Smtp:Username is not configured");
-        var password = smtpSection["Password"] ?? throw new InvalidOperationException("Smtp:Password is not configured");
+        var username = smtpSection["Username"];
+        var password = smtpSection["Password"];
 
-        await client.ConnectAsync(server, port, SecureSocketOptions.StartTls, cancellationToken);
-        await client.AuthenticateAsync(username, password, cancellationToken);
+        // Defaults:
+        // - Port 1025 is commonly used for local/dev SMTP servers (Mailpit/MailHog) with no TLS.
+        // - For typical providers on 587, use StartTLS.
+        var socketOptions = port == 1025 ? SecureSocketOptions.None : SecureSocketOptions.StartTls;
+
+        await client.ConnectAsync(server, port, socketOptions, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(username))
+        {
+            if (string.IsNullOrWhiteSpace(password))
+                throw new InvalidOperationException("Smtp:Password must be configured when Smtp:Username is set");
+
+            await client.AuthenticateAsync(username, password, cancellationToken);
+        }
         await client.SendAsync(message, cancellationToken);
         await client.DisconnectAsync(true, cancellationToken);
     }

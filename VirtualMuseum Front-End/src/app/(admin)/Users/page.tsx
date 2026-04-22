@@ -1,30 +1,60 @@
 "use client";
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { 
-  Search, UserCheck, UserX, Eye, Shield, 
+  Search, UserCheck, Eye, 
   Ban, Mail, Calendar, Activity, Crown 
 } from "lucide-react";
-
-// --- الداتا الوهمية للمستخدمين ---
-const usersData = [
-  { id: 1, name: "Ahmed Hassan", email: "ahmed.hassan@gem.com", joinDate: "2026-01-15", status: "active", lastActive: "2 hours ago", artifactViews: 245, role: "User" },
-  { id: 2, name: "Sarah Mohamed", email: "sarah.m@history.org", joinDate: "2026-01-20", status: "active", lastActive: "1 day ago", artifactViews: 189, role: "User" },
-  { id: 3, name: "Omar Ali", email: "omar.ali@ancient.eg", joinDate: "2025-12-10", status: "suspended", lastActive: "5 days ago", artifactViews: 423, role: "User" },
-  { id: 4, name: "Fatima Ibrahim", email: "fatima.v@premium.com", joinDate: "2026-02-01", status: "active", lastActive: "5 hours ago", artifactViews: 567, role: "Premium" },
-  { id: 5, name: "Karim Youssef", email: "karim.y@museum.com", joinDate: "2026-01-08", status: "active", lastActive: "30 minutes ago", artifactViews: 834, role: "User" },
-];
+import { getAdminUsers, updateAdminUser } from "../../../lib/adminApi";
 
 export default function Users() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const filteredUsers = usersData.filter(
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await getAdminUsers();
+      setUsers(Array.isArray(res?.data) ? res.data : []);
+    } catch (e: any) {
+      setError(e?.message || "Failed to load users.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const filteredUsers = users.filter(
     (user) =>
-      (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (statusFilter === "all" || user.status === statusFilter)
+      (statusFilter === "all" || (statusFilter === "active" ? user.isActive : !user.isActive))
   );
+
+  const toggleStatus = async (user: any) => {
+    setError("");
+    setSuccess("");
+    try {
+      await updateAdminUser(user.id, {
+        fullName: user.fullName,
+        email: user.email,
+        region: user.region,
+        isActive: !user.isActive,
+      });
+      setSuccess(`User ${!user.isActive ? "activated" : "suspended"}.`);
+      await load();
+    } catch (e: any) {
+      setError(e?.message || "Failed to update user.");
+    }
+  };
 
   return (
     <div className="p-8 space-y-10 min-h-screen pb-20">
@@ -37,13 +67,20 @@ export default function Users() {
         </motion.div>
       </div>
 
+      {(error || success) && (
+        <div className="space-y-2">
+          {error ? <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-300 text-sm">{error}</div> : null}
+          {success ? <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-300 text-sm">{success}</div> : null}
+        </div>
+      )}
+
       {/* ================= Stats Grid ================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: "Total Population", value: "15,432", icon: UserCheck, color: "text-[#D4AF37]" },
-          { label: "Active Souls", value: "1,234", icon: Activity, color: "text-emerald-500" },
-          { label: "Premium Nobles", value: "3,421", icon: Crown, color: "text-[#D4AF37]" },
-          { label: "Exiled Accounts", value: "87", icon: Ban, color: "text-red-500" },
+          { label: "Total Population", value: String(users.length), icon: UserCheck, color: "text-[#D4AF37]" },
+          { label: "Active Souls", value: String(users.filter((u) => u.isActive).length), icon: Activity, color: "text-emerald-500" },
+          { label: "Admins", value: String(users.filter((u) => (u.role?.name || "").toLowerCase() === "admin").length), icon: Crown, color: "text-[#D4AF37]" },
+          { label: "Exiled Accounts", value: String(users.filter((u) => !u.isActive).length), icon: Ban, color: "text-red-500" },
         ].map((stat, i) => (
           <motion.div 
             key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
@@ -84,6 +121,9 @@ export default function Users() {
       </div>
 
       {/* ================= Users Table ================= */}
+      {loading ? (
+        <div className="text-gray-400 text-sm">Loading users...</div>
+      ) : (
       <div className="bg-[#111] border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -98,7 +138,6 @@ export default function Users() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              <AnimatePresence>
                 {filteredUsers.map((user, idx) => (
                   <motion.tr 
                     key={user.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }}
@@ -107,33 +146,33 @@ export default function Users() {
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-4">
                         <div className={`w-11 h-11 rounded-full flex items-center justify-center text-lg font-black border-2 ${
-                          user.role === "Premium" ? "bg-[#D4AF37]/10 border-[#D4AF37]/50 text-[#D4AF37]" : "bg-white/5 border-white/10 text-white"
+                          (user.role?.name || "").toLowerCase() === "admin" ? "bg-[#D4AF37]/10 border-[#D4AF37]/50 text-[#D4AF37]" : "bg-white/5 border-white/10 text-white"
                         }`}>
-                          {user.name.charAt(0)}
+                          {user.fullName?.charAt(0) || "U"}
                         </div>
                         <div>
-                          <div className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors">{user.name}</div>
+                          <div className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors">{user.fullName}</div>
                           <div className="text-[10px] text-gray-500 font-medium flex items-center gap-1"><Mail size={10}/> {user.email}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-5">
                       <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${
-                        user.role === "Premium" ? "bg-[#D4AF37]/10 text-[#D4AF37] border-[#D4AF37]/20" : "bg-white/5 text-gray-400 border-white/10"
+                        (user.role?.name || "").toLowerCase() === "admin" ? "bg-[#D4AF37]/10 text-[#D4AF37] border-[#D4AF37]/20" : "bg-white/5 text-gray-400 border-white/10"
                       }`}>
-                        {user.role}
+                        {user.role?.name || "User"}
                       </span>
                     </td>
                     <td className="px-6 py-5 text-center">
-                      <div className="text-sm font-bold text-white font-mono">{user.artifactViews}</div>
-                      <div className="text-[9px] text-gray-600 font-black uppercase tracking-tighter">Views</div>
+                      <div className="text-sm font-bold text-white font-mono">{user.region || "-"}</div>
+                      <div className="text-[9px] text-gray-600 font-black uppercase tracking-tighter">Region</div>
                     </td>
                     <td className="px-6 py-5">
-                      <div className="text-xs text-gray-300 font-medium">{user.lastActive}</div>
-                      <div className="text-[9px] text-gray-600 flex items-center gap-1 mt-1"><Calendar size={10}/> Joined {user.joinDate}</div>
+                      <div className="text-xs text-gray-300 font-medium">{user.lastLogin ? new Date(user.lastLogin).toLocaleString() : "Never"}</div>
+                      <div className="text-[9px] text-gray-600 flex items-center gap-1 mt-1"><Calendar size={10}/> Joined {new Date(user.createdAt).toLocaleDateString()}</div>
                     </td>
                     <td className="px-6 py-5">
-                      {user.status === "active" ? (
+                      {user.isActive ? (
                         <div className="flex items-center gap-2 text-emerald-500">
                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                           <span className="text-[10px] font-black uppercase tracking-widest">Authorized</span>
@@ -148,20 +187,20 @@ export default function Users() {
                     <td className="px-6 py-5 text-center">
                       <div className="flex items-center justify-center gap-3">
                         <button className="p-2 text-gray-500 hover:text-white transition-all bg-white/5 rounded-lg border border-white/5 hover:border-white/20" title="Inspect"><Eye size={16} /></button>
-                        <button className={`p-2 transition-all bg-white/5 rounded-lg border border-white/5 ${
-                          user.status === 'active' ? 'text-gray-500 hover:text-red-500 hover:border-red-500/30' : 'text-red-500 hover:text-emerald-500 hover:border-emerald-500/30'
-                        }`} title={user.status === 'active' ? 'Suspend' : 'Unsuspend'}>
-                          {user.status === 'active' ? <Ban size={16} /> : <UserCheck size={16} />}
+                        <button onClick={() => toggleStatus(user)} className={`p-2 transition-all bg-white/5 rounded-lg border border-white/5 ${
+                          user.isActive ? 'text-gray-500 hover:text-red-500 hover:border-red-500/30' : 'text-red-500 hover:text-emerald-500 hover:border-emerald-500/30'
+                        }`} title={user.isActive ? 'Suspend' : 'Unsuspend'}>
+                          {user.isActive ? <Ban size={16} /> : <UserCheck size={16} />}
                         </button>
                       </div>
                     </td>
                   </motion.tr>
                 ))}
-              </AnimatePresence>
             </tbody>
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }

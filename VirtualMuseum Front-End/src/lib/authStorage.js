@@ -5,6 +5,8 @@ const USER_KEY = "currentUser";
 export function setAuthSession(authData) {
     if (typeof window === "undefined") return;
 
+    const existingUser = getCurrentUser();
+
     // Tokens are kept in sessionStorage to reduce persistence risk on shared devices.
     sessionStorage.setItem(ACCESS_TOKEN_KEY, authData.accessToken);
     sessionStorage.setItem(REFRESH_TOKEN_KEY, authData.refreshToken);
@@ -15,6 +17,7 @@ export function setAuthSession(authData) {
             email: authData.email,
             fullName: authData.fullName,
             role: authData.role,
+            region: authData.region ?? existingUser?.region ?? "",
         }),
     );
 
@@ -31,6 +34,21 @@ export function clearAuthSession() {
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem("userName");
     localStorage.removeItem("isLoggedIn");
+}
+
+export function getCurrentUser() {
+    if (typeof window === "undefined") return null;
+    try {
+        const raw = localStorage.getItem(USER_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+}
+
+export function isLoggedIn() {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("isLoggedIn") === "true" && !!getAccessToken();
 }
 
 export function getAccessToken() {
