@@ -31,7 +31,7 @@ services:
         environment:
             DataProtection__KeyPath: /var/aspnet-keys
         ports:
-            - "8080:8080"
+            - "8090:8090"
         volumes:
             - backend_data_protection_keys:/var/aspnet-keys
         depends_on:

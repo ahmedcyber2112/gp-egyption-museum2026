@@ -258,7 +258,7 @@
     "material": "Sandstone",
     "dimensions": { "height": "1.5 m" },
     "discoverySite": "Dendera",
-    "image3D": "/assets/images3D/19-33/hathor_-_louvre.glb",
+    "image3D": "https://sketchfab.com/models/55d5bc1d94c94186bfbf5c791e8a5d4e/embed?autostart=1&ui_theme=dark&ui_infos=0&ui_hint=0",
     "status": "published"
   },
 
@@ -276,7 +276,7 @@
     "material": "Limestone",
     "dimensions": { "height": "3.5 m" },
     "discoverySite": "Saqqara",
-    "image3D": "/assets/images3D/19-33/egyptian_papyrus.glb",
+    "image3D": "https://sketchfab.com/models/1da186ddee4a4621a6853abb0498cceb/embed?autostart=1&ui_theme=dark&ui_infos=0&ui_hint=0",
     "status": "published"
   },
   
@@ -292,7 +292,7 @@
     "material": "Sandstone",
     "dimensions": { "width": "2 m" },
     "discoverySite": "Luxor",
-    "image3D": "/assets/images3D/19-33/offering_scene_from_abydos.glb",
+    "image3D": "https://sketchfab.com/models/af9b7dfcf5914c0b9feff35b30c9d2ba/embed?autostart=1&ui_theme=dark&ui_infos=0&ui_hint=0",
     "status": "published"
   },
   {
@@ -307,7 +307,7 @@
     "material": "Limestone",
     "dimensions": { "height": "1 m" },
     "discoverySite": "Saqqara",
-    "image3D": "/assets/images3D/19-33/hieroglyph_stone_pyramid.glb",
+    "image3D": "https://sketchfab.com/models/7a770008f6734b43bae9305100b73894/embed?autostart=1&ui_theme=dark&ui_infos=0&ui_hint=0",
     "status": "published"
   },
   {
@@ -322,7 +322,7 @@
     "material": "Granite",
     "dimensions": { "height": "1.7 m" },
     "discoverySite": "Aswan",
-    "image3D": "/assets/images3D/19-33/25.glb",
+    "image3D": "https://sketchfab.com/models/7352f0c88f2f424a9d3dbd1c34c854cf/embed?autostart=1&ui_theme=dark&ui_infos=0&ui_hint=0",
     "status": "published"
   },
   {
@@ -337,7 +337,7 @@
     "material": "Granite",
     "dimensions": { "width": "2.5 m" },
     "discoverySite": "Medinet Habu",
-    "image3D": "/assets/images3D/19-33/lintel_of_amenemhat_i_and_deities.glb",
+    "image3D": "https://sketchfab.com/models/7db61639f499423fb448ee62594e7372/embed?autostart=1&ui_theme=dark&ui_infos=0&ui_hint=0",
     "status": "published"
   },
   {
@@ -352,7 +352,7 @@
     "material": "Granite",
     "dimensions": { "height": "2.2 m" },
     "discoverySite": "Karnak",
-    "image3D": "/assets/images3D/19-33/statue_of_the_goddess_sekhmet.glb",
+    "image3D": "https://sketchfab.com/models/24bb4e64e3124fe793e314c760b297b7/embed?autostart=1&ui_theme=dark&ui_infos=0&ui_hint=0",
     "status": "published"
   },
   {
@@ -367,7 +367,7 @@
     "material": "Granite",
     "dimensions": { "height": "1.8 m" },
     "discoverySite": "Memphis",
-    "image3D": "/assets/images3D/19-33/statue_of_the_god_ptah.glb",
+    "image3D": "https://sketchfab.com/models/eb7e0eaacb284075b1045fad2a3c980e/embed?autostart=1&ui_theme=dark&ui_infos=0&ui_hint=0",
     "status": "published"
   },
   {
@@ -382,7 +382,7 @@
     "material": "Limestone",
     "dimensions": { "height": "1.6 m" },
     "discoverySite": "Akhmim",
-    "image3D": "/assets/images3D/19-33/29.glb",
+    "image3D": "https://sketchfab.com/models/b5a0d73920ea494e8f1f9500146a486a/embed?autostart=1&ui_theme=dark&ui_infos=0&ui_hint=0",
     "status": "published"
   },
   {
@@ -415,7 +415,7 @@
     "material": "Limestone",
     "dimensions": { "height": "1.2 m" },
     "discoverySite": "Dendera",
-    "image3D": "/assets/images3D/19-33/head_of_goddess_hathor.glb",
+    "image3D": "https://sketchfab.com/models/a71451d924f84957af8bf2b6c694a080/embed?autostart=1&ui_theme=dark&ui_infos=0&ui_hint=0",
     "status": "published"
   },
   {
@@ -445,7 +445,7 @@
     "material": "Granite",
     "dimensions": { "height": "3 m" },
     "discoverySite": "Heliopolis",
-    "image3D": "",
+    "image3D": "https://sketchfab.com/models/6da040d85c1b4e918ef0663c7a01be91/embed?autostart=1&ui_theme=dark&ui_infos=0&ui_hint=0",
     "status": "published"
   },
   
