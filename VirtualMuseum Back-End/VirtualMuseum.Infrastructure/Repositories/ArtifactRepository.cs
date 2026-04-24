@@ -42,7 +42,9 @@ public class ArtifactRepository : Repository<Artifact>, IArtifactRepository
         return await _dbSet
             .Include(a => a.Era)
             .Include(a => a.Category)
+            .Include(a => a.ModelFile)
             .Include(a => a.ThumbnailFile)
+            .Include(a => a.Translations)
             .ToListAsync(cancellationToken);
     }
 }

@@ -57,3 +57,8 @@ export function getAdminMaterials() {
     return apiRequest("/api/materials");
 }
 
+// Files (for 2D/3D asset URL injection)
+export function createAdminFile(payload) {
+    return apiRequest("/api/files", { method: "POST", body: payload });
+}
+

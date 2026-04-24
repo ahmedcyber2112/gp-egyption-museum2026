@@ -4,14 +4,16 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { loginUser } from "../../lib/authApi";
 import { setAuthSession } from "../../lib/authStorage";
+import { consumePostLoginRedirect } from "../../lib/authGate";
 import GoogleAuthButton from "../Auth/GoogleAuthButton";
 
 export default function Signin() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -34,11 +36,15 @@ export default function Signin() {
             }
 
             setAuthSession(response.data);
+            window.dispatchEvent(new Event("auth:logged-in"));
+
+            const nextPath =
+                searchParams.get("next") || consumePostLoginRedirect();
 
             if ((response.data.role || "").toLowerCase() === "admin") {
                 router.push("/dashboard");
             } else {
-                router.push("/");
+                router.push(nextPath || "/");
             }
         } catch (err) {
             setError(err?.message || "Login failed. Please try again.");

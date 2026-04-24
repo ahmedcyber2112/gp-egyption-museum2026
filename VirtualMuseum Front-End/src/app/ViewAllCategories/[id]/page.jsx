@@ -14,9 +14,53 @@ import {
 import Link from "next/link";
 import { getArtifacts } from "../../../lib/museumApi";
 import { mapApiArtifactToUi } from "../../../lib/museumMappers";
+import { isLoggedIn } from "../../../lib/authStorage";
+import {
+    consumePostLoginAction,
+    setPostLoginAction,
+    setPostLoginRedirect,
+} from "../../../lib/authGate";
+import LoginRequiredModal from "../../../components/Auth/LoginRequiredModal";
 
 // استيراد الداتا
 import artifactsData from "../../../Data/artifacts.json";
+
+function slugify(value) {
+    return String(value || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-");
+}
+
+function mergeArtifactsWithApi(baseArtifacts, apiArtifacts) {
+    const merged = [...baseArtifacts];
+    const indexBySlug = new Map(
+        merged.map((item, index) => [slugify(item?.name), index]),
+    );
+
+    for (const apiItem of apiArtifacts) {
+        const key = slugify(apiItem?.name || apiItem?.accessionNumber || "");
+        const existingIndex = indexBySlug.get(key);
+
+        if (existingIndex === undefined) {
+            merged.push(apiItem);
+            continue;
+        }
+
+        const baseItem = merged[existingIndex];
+        merged[existingIndex] = {
+            ...baseItem,
+            ...apiItem,
+            categoryId: baseItem?.categoryId || apiItem?.categoryId || "",
+            image: apiItem?.image || baseItem?.image,
+            image3D: apiItem?.image3D || baseItem?.image3D || null,
+        };
+    }
+
+    return merged;
+}
 
 // =====================================================================
 // ================= 1. مكون محتوى الكارت (نفس تصميم الرئيسية) =================
@@ -138,6 +182,7 @@ export default function CategoryGalleryPage() {
     const [artifacts, setArtifacts] = useState(
         artifactsData.filter((artifact) => artifact.categoryId === id),
     );
+    const [showLoginModal, setShowLoginModal] = useState(false);
 
     useEffect(() => {
         const fallback = artifactsData.filter(
@@ -166,7 +211,9 @@ export default function CategoryGalleryPage() {
                     return;
                 }
 
-                setArtifacts(mapped);
+                setArtifacts((current) =>
+                    mergeArtifactsWithApi(current, mapped),
+                );
             } catch {
                 // Keep JSON fallback when API fails.
             }
@@ -178,6 +225,24 @@ export default function CategoryGalleryPage() {
             isMounted = false;
         };
     }, [id]);
+
+    useEffect(() => {
+        if (!isLoggedIn()) return;
+        const action = consumePostLoginAction();
+        if (action?.type === "open-artifact" && action?.artifactId) {
+            router.push(`/artifacts/${action.artifactId}`);
+        }
+    }, [router]);
+
+    const handleOpenArtifact = (artifactId) => {
+        if (isLoggedIn()) {
+            router.push(`/artifacts/${artifactId}`);
+            return;
+        }
+        setPostLoginRedirect(`/ViewAllCategories/${id}`);
+        setPostLoginAction({ type: "open-artifact", artifactId });
+        setShowLoginModal(true);
+    };
 
     return (
         <div className="min-h-screen bg-[#050505] pb-32 overflow-hidden selection:bg-[#D4AF37] selection:text-black">
@@ -218,9 +283,7 @@ export default function CategoryGalleryPage() {
                                         delay: index * 0.05,
                                     }}
                                     className="relative group cursor-pointer"
-                                    onClick={() =>
-                                        router.push(`/artifacts/${artifact.id}`)
-                                    }>
+                                    onClick={() => handleOpenArtifact(artifact.id)}>
                                     <ArtifactCardContent artifact={artifact} />
                                 </motion.div>
                             ))
@@ -246,6 +309,13 @@ export default function CategoryGalleryPage() {
                     </AnimatePresence>
                 </motion.div>
             </div>
+            <LoginRequiredModal
+                open={showLoginModal}
+                onClose={() => setShowLoginModal(false)}
+                nextPath={`/ViewAllCategories/${id}`}
+                title="Sign in to view 3D model"
+                message="Please sign in first, then we will open the selected artifact model for you."
+            />
         </div>
     );
 }

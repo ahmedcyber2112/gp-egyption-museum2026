@@ -21,23 +21,24 @@ public class ArtifactsController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<Artifact>>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<ArtifactResponseDto>>), 200)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var artifacts = await _artifactService.GetAllAsync(cancellationToken);
-        return Ok(new ApiResponse<IEnumerable<Artifact>>(true, artifacts));
+        var response = artifacts.Select(MapArtifact).ToList();
+        return Ok(new ApiResponse<IEnumerable<ArtifactResponseDto>>(true, response));
     }
 
     [HttpGet("{id:guid}")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse<Artifact>), 200)]
+    [ProducesResponseType(typeof(ApiResponse<ArtifactResponseDto>), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var artifact = await _artifactService.GetByIdAsync(id, cancellationToken);
         if (artifact == null)
             return NotFound(new ApiResponse(false, "Artifact not found"));
-        return Ok(new ApiResponse<Artifact>(true, artifact));
+        return Ok(new ApiResponse<ArtifactResponseDto>(true, MapArtifact(artifact)));
     }
 
     [HttpPost]
@@ -49,7 +50,7 @@ public class ArtifactsController : ControllerBase
         if (artifact == null)
             return BadRequest(new ApiResponse(false, "Invalid request body"));
         var created = await _artifactService.CreateAsync(artifact, cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, new ApiResponse<Artifact>(true, created));
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, new ApiResponse<ArtifactResponseDto>(true, MapArtifact(created)));
     }
 
     [HttpPut("{id:guid}")]
@@ -77,7 +78,7 @@ public class ArtifactsController : ControllerBase
         existing.Weight = artifact.Weight;
         existing.CreatedBy = artifact.CreatedBy;
         await _artifactService.UpdateAsync(existing, cancellationToken);
-        return Ok(new ApiResponse<Artifact>(true, existing));
+        return Ok(new ApiResponse<ArtifactResponseDto>(true, MapArtifact(existing)));
     }
 
     [HttpDelete("{id:guid}")]
@@ -92,4 +93,88 @@ public class ArtifactsController : ControllerBase
         await _artifactService.DeleteAsync(artifact, cancellationToken);
         return NoContent();
     }
+
+    private static ArtifactResponseDto MapArtifact(Artifact artifact) =>
+        new(
+            artifact.Id,
+            artifact.Slug,
+            artifact.EraId,
+            artifact.CategoryId,
+            artifact.MaterialId,
+            artifact.DiscoveryLocationId,
+            artifact.ModelFileId,
+            artifact.ThumbnailFileId,
+            artifact.Height,
+            artifact.Width,
+            artifact.Depth,
+            artifact.Weight,
+            artifact.CreatedBy,
+            artifact.CreatedAt,
+            artifact.Era is null ? null : new NamedRefDto(artifact.Era.Id, artifact.Era.Name),
+            artifact.Category is null ? null : new NamedRefDto(artifact.Category.Id, artifact.Category.Name),
+            artifact.Material is null ? null : new NamedRefDto(artifact.Material.Id, artifact.Material.Name),
+            artifact.DiscoveryLocation is null ? null : new DiscoveryLocationDto(
+                artifact.DiscoveryLocation.Id,
+                artifact.DiscoveryLocation.Name,
+                artifact.DiscoveryLocation.Latitude,
+                artifact.DiscoveryLocation.Longitude),
+            artifact.ModelFile is null ? null : new FileDto(
+                artifact.ModelFile.Id,
+                artifact.ModelFile.FileName,
+                artifact.ModelFile.FileType,
+                artifact.ModelFile.Url,
+                artifact.ModelFile.StorageProvider),
+            artifact.ThumbnailFile is null ? null : new FileDto(
+                artifact.ThumbnailFile.Id,
+                artifact.ThumbnailFile.FileName,
+                artifact.ThumbnailFile.FileType,
+                artifact.ThumbnailFile.Url,
+                artifact.ThumbnailFile.StorageProvider),
+            artifact.Translations.Select(t => new ArtifactTranslationDto(
+                t.Id,
+                t.LanguageCode,
+                t.Name,
+                t.Description,
+                t.HistoricalStory)).ToList()
+        );
+
+    public sealed record NamedRefDto(Guid Id, string Name);
+
+    public sealed record FileDto(Guid Id, string FileName, string FileType, string Url, string StorageProvider);
+
+    public sealed record DiscoveryLocationDto(
+        Guid Id,
+        string Name,
+        decimal? Latitude,
+        decimal? Longitude);
+
+    public sealed record ArtifactTranslationDto(
+        Guid Id,
+        string LanguageCode,
+        string Name,
+        string? Description,
+        string? HistoricalStory);
+
+    public sealed record ArtifactResponseDto(
+        Guid Id,
+        string Slug,
+        Guid? EraId,
+        Guid? CategoryId,
+        Guid? MaterialId,
+        Guid? DiscoveryLocationId,
+        Guid? ModelFileId,
+        Guid? ThumbnailFileId,
+        decimal? Height,
+        decimal? Width,
+        decimal? Depth,
+        decimal? Weight,
+        Guid? CreatedBy,
+        DateTime CreatedAt,
+        NamedRefDto? Era,
+        NamedRefDto? Category,
+        NamedRefDto? Material,
+        DiscoveryLocationDto? DiscoveryLocation,
+        FileDto? ModelFile,
+        FileDto? ThumbnailFile,
+        List<ArtifactTranslationDto> Translations);
 }

@@ -188,7 +188,8 @@ export default function ProfilePage() {
         .join("");
 
     return (
-        <div className="min-h-screen w-full bg-linear-to-br from-[#A88A5B] to-[#8B7355] flex items-start justify-center pt-20 sm:pt-24 pb-8 px-4 sm:px-6">
+        <div className="min-h-screen w-full bg-[#0a0a0f] relative overflow-hidden flex items-start justify-center pt-20 sm:pt-24 pb-8 px-4 sm:px-6">
+            <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[55rem] h-[20rem] rounded-full bg-[#D4AF37]/10 blur-[120px]" />
             <div className="w-full max-w-3xl">
                 <motion.div
                     initial={{ opacity: 0, y: 14 }}

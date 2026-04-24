@@ -2,6 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Mic, Camera, Sparkles, ScanLine, Volume2, Image as ImageIcon, History } from 'lucide-react';
+import { isLoggedIn } from '../../lib/authStorage';
+import { consumePostLoginAction, setPostLoginAction, setPostLoginRedirect } from '../../lib/authGate';
+import LoginRequiredModal from '../Auth/LoginRequiredModal';
 
 // --- 1. خريطة تحويل الحروف الإنجليزية إلى هيروغليفية (للمترجم) ---
 const hieroglyphMap = {
@@ -27,6 +30,7 @@ export default function AIAssistant() {
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   
   // Refs للتحكم في السكرول
   const chatContainerRef = useRef(null);
@@ -54,8 +58,35 @@ export default function AIAssistant() {
     return () => clearTimeout(timeoutId);
   }, [messages, isTyping]);
 
+  useEffect(() => {
+    if (!isLoggedIn()) return;
+    const action = consumePostLoginAction();
+    if (!action || action.type !== 'ai-action') return;
+
+    if (action.mode === 'scan') {
+      handleImageUpload();
+      return;
+    }
+    if (action.mode === 'voice') {
+      handleVoiceMode();
+      return;
+    }
+    if (action.text) {
+      handleSend(action.text);
+    }
+  }, []);
+
+  const requireAiAuth = (action) => {
+    if (isLoggedIn()) return true;
+    setPostLoginRedirect('/AIAssistant');
+    setPostLoginAction({ type: 'ai-action', ...action });
+    setShowLoginModal(true);
+    return false;
+  };
+
   // --- منطق محاكاة ذكاء الـ AI ---
   const handleSend = (text) => {
+    if (!requireAiAuth({ mode: 'text', text })) return;
     if (!text.trim() && !isScanning) return;
     
     const userMsg = { id: Date.now(), sender: 'user', text };
@@ -93,6 +124,7 @@ export default function AIAssistant() {
 
   // محاكاة وضع المايكروفون الصوتي
   const handleVoiceMode = () => {
+    if (!requireAiAuth({ mode: 'voice' })) return;
     setIsListening(true);
     setTimeout(() => {
       setIsListening(false);
@@ -102,6 +134,7 @@ export default function AIAssistant() {
 
   // محاكاة الماسح الضوئي للصور
   const handleImageUpload = () => {
+    if (!requireAiAuth({ mode: 'scan' })) return;
     setIsScanning(true);
     setInput("Uploading artifact image for analysis...");
     setTimeout(() => {
@@ -319,6 +352,13 @@ export default function AIAssistant() {
         </div>
 
       </div>
+      <LoginRequiredModal
+        open={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        nextPath="/AIAssistant"
+        title="Sign in to use AI Assistant"
+        message="Please sign in to send text, upload images, or use voice in AI Assistant."
+      />
     </div>
   );
 }

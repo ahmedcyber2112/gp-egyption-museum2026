@@ -9,10 +9,50 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, ExternalLink, Sparkles, ArrowRight, Ticket, Lock, Globe } from 'lucide-react';
+import { isLoggedIn } from '../../lib/authStorage';
+import { consumePostLoginAction, setPostLoginAction, setPostLoginRedirect } from '../../lib/authGate';
+import LoginRequiredModal from '../Auth/LoginRequiredModal';
+import { pushAdminBooking, pushAdminNotification } from '../../lib/adminEvents';
 
 export default function BookingPage() {
+  const [showLoginModal, setShowLoginModal] = React.useState(false);
   // The official direct link to the museum ticketing page
   const officialBookingUrl = "https://www.visit-gem.com/en/AdmissionTkt"; 
+
+  React.useEffect(() => {
+    if (!isLoggedIn()) return;
+    const action = consumePostLoginAction();
+    if (action?.type === "open-official-booking") {
+      window.open(officialBookingUrl, "_blank", "noopener,noreferrer");
+    }
+  }, []);
+
+  const handleOfficialBooking = () => {
+    if (isLoggedIn()) {
+      const record = pushAdminBooking({
+        source: "official-portal",
+        guideName: "Official Portal",
+        date: new Date().toISOString().slice(0, 10),
+        time: new Date().toLocaleTimeString(),
+        locations: ["Grand Egyptian Museum Official Admission"],
+        totalDuration: 0,
+        totalPrice: 0,
+        status: "new",
+      });
+      pushAdminNotification({
+        type: "ticket-booking",
+        title: "Official booking started",
+        message: "A user opened the official booking portal.",
+        link: "/bookings",
+        bookingId: record.id,
+      });
+      window.open(officialBookingUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    setPostLoginRedirect("/Booking");
+    setPostLoginAction({ type: "open-official-booking" });
+    setShowLoginModal(true);
+  };
 
   return (
     <div className="min-h-screen bg-[#050505] text-white pt-32 pb-12 px-4 flex items-center justify-center font-sans">
@@ -52,17 +92,16 @@ export default function BookingPage() {
 
             {/* Main Action Button */}
             <div className="flex flex-col items-center gap-4">
-              <a 
-                href={officialBookingUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
+              <button 
+                type="button"
+                onClick={handleOfficialBooking}
                 className="group relative inline-flex items-center justify-center gap-4 bg-[#D4AF37] text-black font-black py-5 px-10 md:px-14 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-[#D4AF37]/20 overflow-hidden"
               >
                 <span className="relative z-10 flex items-center gap-3">
                   BOOK OFFICIAL TICKETS NOW <ArrowRight size={22} className="group-hover:translate-x-2 transition-transform" />
                 </span>
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-              </a>
+              </button>
               
               <p className="text-[10px] text-gray-500 mt-2 flex items-center gap-2">
                 <Globe size={12} /> Portal will open in a new secure window
@@ -96,6 +135,13 @@ export default function BookingPage() {
           </button>
         </div>
       </div>
+      <LoginRequiredModal
+        open={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        nextPath="/Booking"
+        title="Sign in to book tickets"
+        message="Please sign in first. After login, we will open the official booking portal for you."
+      />
     </div>
   );
 }

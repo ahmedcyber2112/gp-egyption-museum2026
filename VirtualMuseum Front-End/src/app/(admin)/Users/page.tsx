@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { 
   Search, UserCheck, Eye, 
-  Ban, Mail, Calendar, Activity, Crown 
+  Ban, Mail, Calendar, Activity, Crown, X, MapPin
 } from "lucide-react";
 import { getAdminUsers, updateAdminUser } from "../../../lib/adminApi";
 
@@ -14,6 +14,7 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -186,7 +187,7 @@ export default function Users() {
                     </td>
                     <td className="px-6 py-5 text-center">
                       <div className="flex items-center justify-center gap-3">
-                        <button className="p-2 text-gray-500 hover:text-white transition-all bg-white/5 rounded-lg border border-white/5 hover:border-white/20" title="Inspect"><Eye size={16} /></button>
+                        <button onClick={() => setSelectedUser(user)} className="p-2 text-gray-500 hover:text-white transition-all bg-white/5 rounded-lg border border-white/5 hover:border-white/20" title="Inspect"><Eye size={16} /></button>
                         <button onClick={() => toggleStatus(user)} className={`p-2 transition-all bg-white/5 rounded-lg border border-white/5 ${
                           user.isActive ? 'text-gray-500 hover:text-red-500 hover:border-red-500/30' : 'text-red-500 hover:text-emerald-500 hover:border-emerald-500/30'
                         }`} title={user.isActive ? 'Suspend' : 'Unsuspend'}>
@@ -201,6 +202,54 @@ export default function Users() {
         </div>
       </div>
       )}
+
+      {selectedUser ? (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedUser(null)} />
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="relative w-full max-w-2xl rounded-3xl border border-white/10 bg-[#0a0a0f] shadow-2xl p-6 md:p-8"
+          >
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-serif font-bold text-white">Citizen Details</h3>
+                <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">Profile Inspection</p>
+              </div>
+              <button onClick={() => setSelectedUser(null)} className="p-2 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Full Name</div>
+                <div className="text-white font-bold mt-1">{selectedUser.fullName || "—"}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Email</div>
+                <div className="text-white font-bold mt-1 break-all">{selectedUser.email || "—"}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Role</div>
+                <div className="text-white font-bold mt-1">{selectedUser.role?.name || "User"}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Region</div>
+                <div className="text-white font-bold mt-1 inline-flex items-center gap-2"><MapPin size={14} className="text-[#D4AF37]" />{selectedUser.region || "—"}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Created At</div>
+                <div className="text-white font-bold mt-1">{selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleString() : "—"}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Last Login</div>
+                <div className="text-white font-bold mt-1">{selectedUser.lastLogin ? new Date(selectedUser.lastLogin).toLocaleString() : "Never"}</div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      ) : null}
     </div>
   );
 }

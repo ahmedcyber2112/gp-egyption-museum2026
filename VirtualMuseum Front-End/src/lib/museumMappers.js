@@ -1,3 +1,5 @@
+import artifactsData from "../Data/artifacts.json";
+
 function firstTranslation(artifact) {
     if (
         !Array.isArray(artifact?.translations) ||
@@ -17,28 +19,51 @@ function toDimensionValue(value) {
     return String(value);
 }
 
+function slugify(value) {
+    return String(value || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-");
+}
+
+const artifactBySlug = new Map(
+    artifactsData.map((item) => [slugify(item?.name), item]),
+);
+
 export function mapApiArtifactToUi(artifact) {
     const translation = firstTranslation(artifact);
+    const displayName = translation?.name || artifact?.slug || "Artifact";
+    const fallbackArtifact = artifactBySlug.get(slugify(displayName));
+    const storyKing = translation?.historicalStory?.trim();
 
     return {
         id: artifact?.id || "",
         categoryId: artifact?.categoryId || artifact?.category?.id || "",
         categoryName: artifact?.category?.name || "Artifact",
-        name: translation?.name || artifact?.slug || "Artifact",
+        name: displayName,
         description: translation?.description || "No description available.",
-        image: "/assets/images/eh.png",
-        accessionNumber: artifact?.slug || "N/A",
+        image:
+            artifact?.thumbnailFile?.url ||
+            fallbackArtifact?.image ||
+            "/assets/images/eh.png",
+        accessionNumber:
+            fallbackArtifact?.accessionNumber || artifact?.slug || "N/A",
         period: artifact?.era?.name || "Unknown Era",
-        associatedKing: "Unknown",
-        material: artifact?.material?.name || "Unknown",
+        associatedKing: storyKing || fallbackArtifact?.associatedKing || "Unknown",
+        material: artifact?.material?.name || fallbackArtifact?.material || "Unknown",
         dimensions: {
             height: toDimensionValue(artifact?.height),
             width: toDimensionValue(artifact?.width),
             depth: toDimensionValue(artifact?.depth),
             weight: toDimensionValue(artifact?.weight),
         },
-        discoverySite: artifact?.discoveryLocation?.city || "Unknown Site",
-        image3D: null,
+        discoverySite:
+            artifact?.discoveryLocation?.name ||
+            fallbackArtifact?.discoverySite ||
+            "Unknown Site",
+        image3D: artifact?.modelFile?.url || fallbackArtifact?.image3D || null,
         status: "published",
     };
 }

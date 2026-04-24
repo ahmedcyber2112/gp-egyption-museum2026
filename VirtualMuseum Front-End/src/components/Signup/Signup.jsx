@@ -4,13 +4,15 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { registerUser, sendOtp, verifyOtp } from "../../lib/authApi";
 import GoogleAuthButton from "../Auth/GoogleAuthButton";
+import { pushAdminNotification } from "../../lib/adminEvents";
 
 export default function Signup() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [region, setRegion] = useState("");
@@ -96,10 +98,25 @@ export default function Signup() {
             }
 
             setEmailVerified(true);
+            pushAdminNotification({
+                type: "account-created",
+                title: "New account created",
+                message: `${name.trim() || email.trim()} joined the platform.`,
+                link: "/Users",
+            });
             setSuccessMessage(
                 "Email verified successfully. Redirecting to sign in...",
             );
-            setTimeout(() => router.push("/Signin"), 900);
+            const nextPath = searchParams.get("next");
+            setTimeout(
+                () =>
+                    router.push(
+                        nextPath
+                            ? `/Signin?next=${encodeURIComponent(nextPath)}`
+                            : "/Signin",
+                    ),
+                900,
+            );
         } catch (err) {
             setError(err?.message || "OTP verification failed.");
         } finally {

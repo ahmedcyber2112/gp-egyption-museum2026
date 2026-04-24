@@ -3,6 +3,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Headphones, Smartphone, Users, GraduationCap, Ticket, Mail, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { isLoggedIn } from '../../lib/authStorage';
+import { consumePostLoginAction, setPostLoginAction, setPostLoginRedirect } from '../../lib/authGate';
+import LoginRequiredModal from '../Auth/LoginRequiredModal';
 
 const services = [
   {
@@ -30,6 +34,27 @@ const services = [
 ];
 
 export default function ServicesCTA() {
+  const router = useRouter();
+  const [showLoginModal, setShowLoginModal] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isLoggedIn()) return;
+    const action = consumePostLoginAction();
+    if (action?.type === 'open-tours') {
+      router.push('/tours');
+    }
+  }, [router]);
+
+  const handleOpenTours = () => {
+    if (isLoggedIn()) {
+      router.push('/tours');
+      return;
+    }
+    setPostLoginRedirect('/');
+    setPostLoginAction({ type: 'open-tours' });
+    setShowLoginModal(true);
+  };
+
   return (
     <section className="bg-white py-24 px-6 relative overflow-hidden">
       
@@ -102,9 +127,14 @@ export default function ServicesCTA() {
             );
 
             return service.link ? (
-              <Link href={service.link} key={index} className="block h-full">
+              <button
+                type="button"
+                onClick={handleOpenTours}
+                key={index}
+                className="block h-full text-left"
+              >
                 {CardContent}
-              </Link>
+              </button>
             ) : (
               <div key={index} className="h-full">{CardContent}</div>
             );
@@ -158,6 +188,13 @@ export default function ServicesCTA() {
         </motion.div>
 
       </div>
+      <LoginRequiredModal
+        open={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        nextPath="/"
+        title="Sign in to book guided tours"
+        message="Please sign in to continue to Expert Guided Tours booking."
+      />
     </section>
   );
 }

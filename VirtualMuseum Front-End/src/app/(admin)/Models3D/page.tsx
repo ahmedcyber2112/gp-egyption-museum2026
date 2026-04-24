@@ -14,6 +14,7 @@ import {
     Edit,
 } from "lucide-react";
 import {
+    createAdminFile,
     createArtifact,
     deleteArtifact,
     getAdminArtifacts,
@@ -23,6 +24,7 @@ import {
     updateArtifact,
 } from "../../../lib/adminApi";
 import { getCurrentUser } from "../../../lib/authStorage";
+import { useRouter } from "next/navigation";
 
 function slugify(input: string) {
     return input
@@ -34,6 +36,7 @@ function slugify(input: string) {
 }
 
 export default function Models3D() {
+    const router = useRouter();
     const [models, setModels] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [eras, setEras] = useState<any[]>([]);
@@ -53,6 +56,8 @@ export default function Models3D() {
     const [depth, setDepth] = useState("");
     const [weight, setWeight] = useState("");
     const [saving, setSaving] = useState(false);
+    const [thumbnailUrl, setThumbnailUrl] = useState("");
+    const [modelUrl, setModelUrl] = useState("");
 
     const totalStorageMb = useMemo(() => models.length * 18.5, [models.length]);
 
@@ -91,6 +96,8 @@ export default function Models3D() {
         setWidth("");
         setDepth("");
         setWeight("");
+        setThumbnailUrl("");
+        setModelUrl("");
         setShowUploadModal(true);
         setError("");
         setSuccess("");
@@ -106,6 +113,8 @@ export default function Models3D() {
         setWidth(model.width ?? "");
         setDepth(model.depth ?? "");
         setWeight(model.weight ?? "");
+        setThumbnailUrl(model.thumbnailFile?.url || "");
+        setModelUrl(model.modelFile?.url || "");
         setShowUploadModal(true);
         setError("");
         setSuccess("");
@@ -122,14 +131,26 @@ export default function Models3D() {
         setError("");
         try {
             const me = getCurrentUser();
+            const createFileIfPresent = async (url: string, fileType: string) => {
+                if (!url.trim()) return null;
+                const res = await createAdminFile({
+                    url: url.trim(),
+                    fileName: url.split("/").pop() || `${fileType}-${Date.now()}`,
+                    fileType,
+                    storageProvider: "external",
+                });
+                return res?.data?.id || null;
+            };
+            const modelFileId = await createFileIfPresent(modelUrl, "model");
+            const thumbnailFileId = await createFileIfPresent(thumbnailUrl, "image");
             const payload: any = {
                 slug: editingId ? candidateSlug : `${candidateSlug}-${Date.now()}`,
                 categoryId: categoryId || null,
                 eraId: eraId || null,
                 materialId: materialId || null,
                 discoveryLocationId: null,
-                modelFileId: null,
-                thumbnailFileId: null,
+                modelFileId,
+                thumbnailFileId,
                 height: height === "" ? null : Number(height),
                 width: width === "" ? null : Number(width),
                 depth: depth === "" ? null : Number(depth),
@@ -164,6 +185,11 @@ export default function Models3D() {
         } catch (e: any) {
             setError(e?.message || "Failed to delete model.");
         }
+    };
+
+    const previewModel = (model: any) => {
+        if (!model?.id) return;
+        router.push(`/artifacts/${model.id}`);
     };
 
     return (
@@ -328,7 +354,11 @@ export default function Models3D() {
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <div className="flex items-center justify-center gap-3">
-                                                <button className="p-2 text-gray-500 hover:text-white transition-all bg-white/5 rounded-lg border border-white/5 hover:border-white/20">
+                                                <button
+                                                    onClick={() => previewModel(model)}
+                                                    className="p-2 text-gray-500 hover:text-white transition-all bg-white/5 rounded-lg border border-white/5 hover:border-white/20"
+                                                    title="Open 3D preview"
+                                                >
                                                     <Eye size={16} />
                                                 </button>
                                                 <button
@@ -447,6 +477,28 @@ export default function Models3D() {
                                                 </option>
                                             ))}
                                         </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-[#D4AF37] uppercase tracking-[0.2em] mb-3">
+                                        Asset URLs
+                                    </label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <input
+                                            value={thumbnailUrl}
+                                            onChange={(e) => setThumbnailUrl(e.target.value)}
+                                            type="text"
+                                            placeholder="2D thumbnail URL"
+                                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all"
+                                        />
+                                        <input
+                                            value={modelUrl}
+                                            onChange={(e) => setModelUrl(e.target.value)}
+                                            type="text"
+                                            placeholder="3D model URL (.glb/.gltf)"
+                                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all"
+                                        />
                                     </div>
                                 </div>
 

@@ -1,9 +1,13 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Clock, MapPin, User, CheckCircle2, Ticket, ArrowLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { isLoggedIn } from '../../lib/authStorage';
+import { consumePostLoginAction, setPostLoginAction, setPostLoginRedirect } from '../../lib/authGate';
+import LoginRequiredModal from '../../components/Auth/LoginRequiredModal';
+import { pushAdminBooking, pushAdminNotification } from '../../lib/adminEvents';
 
 type Guide = {
   id: number;
@@ -40,6 +44,15 @@ export default function BookTourPage() {
   const [time, setTime] = useState('');
   const [selectedLocations, setSelectedLocations] = useState<Location[]>([]);
   const [isBooked, setIsBooked] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  useEffect(() => {
+    if (!isLoggedIn()) return;
+    const action = consumePostLoginAction();
+    if (action?.type === 'confirm-tour') {
+      handleBooking();
+    }
+  }, []);
 
   // دالة لاختيار أو إلغاء اختيار الأماكن
   const toggleLocation = (loc: Location) => {
@@ -62,7 +75,34 @@ export default function BookTourPage() {
       alert("Please complete all fields to book your tour.");
       return;
     }
+    const bookingRecord = pushAdminBooking({
+      source: "guided-tour",
+      guideName: selectedGuide?.name || "Unknown",
+      date,
+      time,
+      locations: selectedLocations.map((l: Location) => l.name),
+      totalDuration,
+      totalPrice,
+      status: "new",
+    });
+    pushAdminNotification({
+      type: "ticket-booking",
+      title: "New ticket booking",
+      message: `${selectedGuide?.name || "Guide"} tour on ${date} at ${time}.`,
+      link: "/bookings",
+      bookingId: bookingRecord.id,
+    });
     setIsBooked(true);
+  };
+
+  const handleBookingWithAuth = () => {
+    if (isLoggedIn()) {
+      handleBooking();
+      return;
+    }
+    setPostLoginRedirect('/tours');
+    setPostLoginAction({ type: 'confirm-tour' });
+    setShowLoginModal(true);
   };
 
   return (
@@ -253,7 +293,7 @@ export default function BookTourPage() {
 
                 {/* زرار الدفع/التأكيد */}
                 <button 
-                  onClick={handleBooking}
+                  onClick={handleBookingWithAuth}
                   className={`w-full py-4 rounded-xl font-black uppercase text-xs tracking-widest flex justify-center items-center gap-2 transition-all ${
                     selectedGuide && date && time && selectedLocations.length > 0
                       ? 'bg-[#D4AF37] text-black hover:bg-white' 
@@ -269,6 +309,13 @@ export default function BookTourPage() {
         )}
 
       </div>
+      <LoginRequiredModal
+        open={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        nextPath="/tours"
+        title="Sign in to complete tour booking"
+        message="Please sign in to confirm your Expert Guided Tour reservation."
+      />
     </div>
   );
 }

@@ -13,24 +13,20 @@ import {
     Sparkles,
 } from "lucide-react";
 import { getArtifacts } from "../../lib/museumApi";
+import { mapApiArtifactToUi } from "../../lib/museumMappers";
 
 // استيراد الداتا الخاصة بك
 import artifactsData from "../../Data/artifacts.json";
 
 function mapApiArtifactToCard(apiArtifact) {
-    const preferredTranslation = Array.isArray(apiArtifact?.translations)
-        ? apiArtifact.translations.find(
-              (item) => item?.languageCode === "en",
-          ) || apiArtifact.translations[0]
-        : null;
-
+    const mapped = mapApiArtifactToUi(apiArtifact);
     return {
-        id: apiArtifact?.id || "",
-        name: preferredTranslation?.name || apiArtifact?.slug || "Artifact",
-        image: "/assets/images/eh.png",
-        period: apiArtifact?.era?.name || "Unknown Era",
-        associatedKing: "Unknown",
-        discoverySite: apiArtifact?.discoveryLocation?.city || "Unknown Site",
+        id: mapped.id,
+        name: mapped.name,
+        image: mapped.image,
+        period: mapped.period,
+        associatedKing: mapped.associatedKing,
+        discoverySite: mapped.discoverySite,
     };
 }
 

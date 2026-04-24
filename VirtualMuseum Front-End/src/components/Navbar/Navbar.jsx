@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
-import { Search, Heart, Bookmark, Menu, X, Sparkles, ChevronRight, Clock } from 'lucide-react';
+import { Search, Heart, Bookmark, Menu, X, Sparkles, ChevronRight, Clock, UserCircle2, LogOut } from 'lucide-react';
 import { useThemeScheduler } from '../Theme/ThemeSchedulerProvider';
 import { clearAuthSession, getCurrentUser, isLoggedIn as isLoggedInFn } from '../../lib/authStorage';
 
@@ -59,6 +59,8 @@ const PharaohNavbar = () => {
   const [authReady, setAuthReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [avatarDataUrl, setAvatarDataUrl] = useState("");
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const isAdmin = (currentUser?.role || "").toLowerCase() === "admin";
 
   // ميزة شريط السكرول الملكي (Golden Scroll Progress)
@@ -120,12 +122,19 @@ const PharaohNavbar = () => {
     const syncAuth = () => {
       try {
         const ok = isLoggedInFn();
+        const user = ok ? getCurrentUser() : null;
         setLoggedIn(ok);
-        setCurrentUser(ok ? getCurrentUser() : null);
+        setCurrentUser(user);
+        const avatar =
+          user?.userId
+            ? localStorage.getItem(`profile_avatar_${user.userId}`) || ""
+            : "";
+        setAvatarDataUrl(avatar);
         setAuthReady(true);
       } catch {
         setLoggedIn(false);
         setCurrentUser(null);
+        setAvatarDataUrl("");
         setAuthReady(true);
       }
     };
@@ -139,6 +148,8 @@ const PharaohNavbar = () => {
     clearAuthSession();
     setLoggedIn(false);
     setCurrentUser(null);
+    setAvatarDataUrl("");
+    setProfileMenuOpen(false);
     window.dispatchEvent(new Event('storage'));
     router.push("/Signin");
   };
@@ -284,22 +295,57 @@ const PharaohNavbar = () => {
             
             <div className="flex items-center gap-6">
               {authReady && loggedIn ? (
-                <div className="hidden md:flex items-center gap-4">
-                  {isAdmin && (
-                    <Link href="/dashboard" className={`text-[11px] uppercase tracking-widest font-bold transition-colors hover:text-[#D4AF37] ${isLightTheme ? 'text-[#3d2c0f]' : 'text-gray-300'}`}>
-                      Dashboard
-                    </Link>
-                  )}
-                  <Link href="/profile" className={`text-[11px] uppercase tracking-widest font-bold transition-colors hover:text-[#D4AF37] ${isLightTheme ? 'text-[#3d2c0f]' : 'text-gray-300'}`}>
-                    {currentUser?.fullName ? currentUser.fullName.split(" ")[0] : "Profile"}
-                  </Link>
+                <div className="hidden md:flex items-center gap-3 relative">
                   <button
                     type="button"
-                    onClick={onLogout}
-                    className={`text-[11px] uppercase tracking-widest font-bold transition-colors hover:text-[#D4AF37] ${isLightTheme ? 'text-[#3d2c0f]' : 'text-gray-300'}`}
+                    onClick={() => setProfileMenuOpen((v) => !v)}
+                    className="w-10 h-10 rounded-full border border-white/15 overflow-hidden bg-white/5 hover:border-[#D4AF37]/50 transition-all"
+                    title="Account"
                   >
-                    Logout
+                    {avatarDataUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={avatarDataUrl} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <UserCircle2 size={18} className="text-[#D4AF37]" />
+                      </div>
+                    )}
                   </button>
+
+                  <AnimatePresence>
+                    {profileMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 8 }}
+                        className="absolute right-0 top-12 w-44 rounded-2xl border border-white/10 bg-[#0b0b10]/95 p-2 shadow-2xl"
+                      >
+                        {isAdmin ? (
+                          <Link
+                            href="/dashboard"
+                            onClick={() => setProfileMenuOpen(false)}
+                            className="block rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest text-gray-300 hover:bg-white/5 hover:text-[#D4AF37]"
+                          >
+                            Dashboard
+                          </Link>
+                        ) : null}
+                        <Link
+                          href="/profile"
+                          onClick={() => setProfileMenuOpen(false)}
+                          className="block rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest text-gray-300 hover:bg-white/5 hover:text-[#D4AF37]"
+                        >
+                          Profile
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={onLogout}
+                          className="w-full text-left rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest text-gray-300 hover:bg-white/5 hover:text-[#D4AF37] flex items-center gap-2"
+                        >
+                          <LogOut size={14} /> Logout
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               ) : (
                 <Link href="/Signin" className={`text-[11px] uppercase tracking-widest font-bold hidden md:block transition-colors hover:text-[#D4AF37] ${isLightTheme ? 'text-[#3d2c0f]' : 'text-gray-300'}`}>

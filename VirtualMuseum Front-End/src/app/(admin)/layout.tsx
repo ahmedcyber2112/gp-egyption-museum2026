@@ -3,18 +3,15 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Cinzel } from 'next/font/google'; 
 import { 
   LayoutDashboard, Package, Ticket, BrainCircuit, Users, 
   Settings, Menu, LogOut, Bell, Search, Layers, Box, Activity, Pyramid, X
 } from 'lucide-react';
 import { EgyptianPattern } from "./EgyptianPattern";
 import { clearAuthSession, getCurrentUser, getAccessToken } from "../../lib/authStorage";
+import { getAdminNotifications, removeAdminNotification } from "../../lib/adminEvents";
 
-const cinzel = Cinzel({ 
-  subsets: ['latin'],
-  weight: ['400', '700'],
-});
+const cinzelClass = "font-serif";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -22,6 +19,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [adminName, setAdminName] = useState("Admin");
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [openNotifications, setOpenNotifications] = useState(false);
   const pathname = usePathname();
 
   // إغلاق قائمة الجوال عند تغيير الصفحة
@@ -43,8 +42,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     setAdminName(currentUser?.fullName || "Admin");
+    setNotifications(getAdminNotifications());
     setAuthReady(true);
   }, [router]);
+
+  useEffect(() => {
+    const syncNotifications = () => setNotifications(getAdminNotifications());
+    syncNotifications();
+    window.addEventListener("storage", syncNotifications);
+    return () => window.removeEventListener("storage", syncNotifications);
+  }, []);
 
   const handleLogout = () => {
     clearAuthSession();
@@ -61,8 +68,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: "Chatbot Logs", icon: BrainCircuit, href: "/chatbot" },
     { name: "Historical Eras", icon: Ticket, href: "/HistoricalEras" },
     { name: "Reports", icon: Ticket, href: "/Reports" },
+    { name: "Book Tickets", icon: Ticket, href: "/bookings" },
     { name: "Settings", icon: Settings, href: "/settings" },
   ];
+
+  const handleNotificationOpen = (notification: any) => {
+    removeAdminNotification(notification.id);
+    setNotifications(getAdminNotifications());
+    setOpenNotifications(false);
+    router.push(notification.link || "/dashboard");
+  };
 
   // مكون القائمة المشترك
   const SidebarContent = () => (
@@ -70,7 +85,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="h-20 flex items-center px-6 border-b border-white/5">
          <Pyramid className="text-[#D4AF37] mr-3" size={24} />
          {(isSidebarOpen || isMobileMenuOpen) && (
-           <span className={`${cinzel.className} font-bold tracking-widest text-sm text-[#D4AF37]`}>
+           <span className={`${cinzelClass} font-bold tracking-widest text-sm text-[#D4AF37]`}>
              Egyptian Museum
            </span>
          )}
@@ -168,7 +183,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Menu size={24} />
             </button>
             
-            <h2 className={`${cinzel.className} text-[10px] md:text-xs tracking-[0.3em] text-gray-500 hidden sm:block uppercase`}>
+            <h2 className={`${cinzelClass} text-[10px] md:text-xs tracking-[0.3em] text-gray-500 hidden sm:block uppercase`}>
               GEM Management
             </h2>
           </div>
@@ -183,7 +198,49 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               />
             </div>
             
-            <Bell size={20} className="text-gray-500 cursor-pointer" />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setOpenNotifications((v) => !v)}
+                className="text-gray-500 hover:text-[#D4AF37] transition-colors relative"
+              >
+                <Bell size={20} />
+                {notifications.length > 0 ? (
+                  <span className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
+                ) : null}
+              </button>
+              <AnimatePresence>
+                {openNotifications && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    className="absolute right-0 top-8 w-96 max-w-[85vw] bg-[#0a0a0f] border border-white/10 rounded-2xl shadow-2xl p-3 z-[120]"
+                  >
+                    <div className="text-[10px] uppercase tracking-widest text-[#D4AF37] font-black px-2 py-1 border-b border-white/10 mb-2">
+                      New Notifications
+                    </div>
+                    <div className="max-h-80 overflow-y-auto space-y-2">
+                      {notifications.length === 0 ? (
+                        <div className="text-sm text-gray-500 p-2">No new notifications.</div>
+                      ) : (
+                        notifications.map((n) => (
+                          <button
+                            key={n.id}
+                            onClick={() => handleNotificationOpen(n)}
+                            className="w-full text-left rounded-xl border border-white/10 bg-white/[0.02] p-3 hover:border-[#D4AF37]/30 hover:bg-white/[0.05] transition-all"
+                          >
+                            <div className="text-xs font-bold text-white">{n.title || "Notification"}</div>
+                            <div className="text-[11px] text-gray-400 mt-1">{n.message || ""}</div>
+                            <div className="text-[10px] text-gray-600 mt-2">{new Date(n.createdAt).toLocaleString()}</div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             <div className="flex items-center gap-2 md:gap-3 pl-3 md:pl-4 border-l border-white/10">
                 <div className="text-right hidden md:block">

@@ -1,9 +1,12 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, MessageCircle, ImageIcon, Send, Share2, MoreHorizontal, MapPin, BadgeCheck, Map, Sparkles, CornerDownRight } from 'lucide-react';
 import Link from 'next/link';
+import { getCurrentUser, isLoggedIn } from '../../lib/authStorage';
+import { consumePostLoginAction, setPostLoginAction, setPostLoginRedirect } from '../../lib/authGate';
+import LoginRequiredModal from '../../components/Auth/LoginRequiredModal';
 
 // --- الريأكتات المتاحة ---
 const REACTIONS_OPTIONS: Array<{
@@ -41,6 +44,7 @@ type CommunityPost = {
   userReaction: ReactionId | null;
   commentsCount: number;
   commentsList: CommunityComment[];
+  createdAt: string;
 };
 
 // --- داتا وهمية مطورة (بما فيها التعليقات) ---
@@ -58,6 +62,7 @@ const INITIAL_POSTS: CommunityPost[] = [
     reactionCount: 1245,
     userReaction: null,
     commentsCount: 2,
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     commentsList: [
       { id: 101, user: "Ahmed Ali", avatar: "https://i.pravatar.cc/150?img=11", text: "Can't wait to see this in person! 😍" },
       { id: 102, user: "Sarah Jenkins", avatar: "https://i.pravatar.cc/150?img=47", text: "Absolutely stunning restoration work." }
@@ -76,17 +81,95 @@ const INITIAL_POSTS: CommunityPost[] = [
     reactionCount: 342,
     userReaction: 'love',
     commentsCount: 0,
-    commentsList: []
+    commentsList: [],
+    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
   }
 ];
 
+const COMMUNITY_POSTS_STORAGE_KEY = "community_posts";
+
+function formatRelativeTime(isoTime: string) {
+  const timestamp = new Date(isoTime).getTime();
+  if (Number.isNaN(timestamp)) return "Just now";
+  const diffSec = Math.max(1, Math.floor((Date.now() - timestamp) / 1000));
+  if (diffSec < 60) return "Just now";
+  const min = Math.floor(diffSec / 60);
+  if (min < 60) return `${min} min ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} hour${hr > 1 ? "s" : ""} ago`;
+  const day = Math.floor(hr / 24);
+  return `${day} day${day > 1 ? "s" : ""} ago`;
+}
+
 export default function CommunityPage() {
-  const [posts, setPosts] = useState<CommunityPost[]>(INITIAL_POSTS);
+  const [posts, setPosts] = useState<CommunityPost[]>(() => {
+    if (typeof window === "undefined") return INITIAL_POSTS;
+    const raw = localStorage.getItem(COMMUNITY_POSTS_STORAGE_KEY);
+    if (!raw) return INITIAL_POSTS;
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : INITIAL_POSTS;
+    } catch {
+      return INITIAL_POSTS;
+    }
+  });
   const [newPostText, setNewPostText] = useState("");
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [selectedImageDataUrl, setSelectedImageDataUrl] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
   
   // States للتعليقات
   const [openComments, setOpenComments] = useState<Record<number, boolean>>({}); // عشان نفتح ونقفل سكشن الكومنتات لكل بوست
   const [commentInputs, setCommentInputs] = useState<Record<number, string>>({}); // عشان نحفظ الكلام اللي بيتكتب في كل بوست
+
+  useEffect(() => {
+    const syncUser = () => setCurrentUser(getCurrentUser());
+    syncUser();
+    window.addEventListener("storage", syncUser);
+    return () => window.removeEventListener("storage", syncUser);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(COMMUNITY_POSTS_STORAGE_KEY, JSON.stringify(posts));
+  }, [posts]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setPosts((prev) => [...prev]), 60 * 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const requireCommunityAuth = (action: Record<string, unknown>) => {
+    if (isLoggedIn()) return true;
+    setPostLoginRedirect('/community');
+    setPostLoginAction({ type: 'community-action', ...action });
+    setShowLoginModal(true);
+    return false;
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn()) return;
+    const action = consumePostLoginAction();
+    if (!action || action.type !== 'community-action') return;
+
+    if (action.mode === 'image' && action.dataUrl && typeof action.dataUrl === 'string') {
+      setSelectedImageDataUrl(action.dataUrl);
+      return;
+    }
+
+    if (action.mode === 'post' && typeof action.text === 'string') {
+      submitPostText(action.text, action.dataUrl && typeof action.dataUrl === 'string' ? action.dataUrl : selectedImageDataUrl);
+      return;
+    }
+
+    if (
+      action.mode === 'comment' &&
+      typeof action.postId === 'number' &&
+      typeof action.text === 'string'
+    ) {
+      submitComment(action.postId, action.text);
+    }
+  }, []);
 
   // 1. دالة اختيار الريأكت
   const handleReact = (postId: number, reactionId: ReactionId) => {
@@ -104,28 +187,40 @@ export default function CommunityPage() {
   };
 
   // 2. دالة نشر بوست جديد
-  const handlePostSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!newPostText.trim()) return;
-
+  const submitPostText = (text: string, imageDataUrl?: string | null) => {
+    if (!text.trim()) return;
+    const userName = (currentUser?.fullName || currentUser?.email || "Explorer").trim();
+    const userId = currentUser?.userId || "";
+    const userAvatar =
+      userId ? localStorage.getItem(`profile_avatar_${userId}`) : null;
     const newPost = {
       id: Date.now(),
-      user: "You (Guest Explorer)",
+      user: userName,
       role: "New Member",
       isVerified: false,
-      avatar: "https://i.pravatar.cc/150?img=33",
+      avatar: userAvatar || "https://i.pravatar.cc/150?img=33",
       time: "Just now",
       location: "Museum Lobby",
-      content: newPostText,
-      image: null,
+      content: text,
+      image: imageDataUrl || null,
       reactionCount: 0,
       userReaction: null,
       commentsCount: 0,
-      commentsList: []
+      commentsList: [],
+      createdAt: new Date().toISOString()
     };
 
-    setPosts([newPost, ...posts]);
+    setPosts((prev) => [newPost, ...prev]);
     setNewPostText("");
+    setSelectedImageDataUrl(null);
+  };
+
+  const handlePostSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const text = newPostText.trim();
+    if (!text && !selectedImageDataUrl) return;
+    if (!requireCommunityAuth({ mode: 'post', text, dataUrl: selectedImageDataUrl })) return;
+    submitPostText(text || "Shared an image from my visit.", selectedImageDataUrl);
   };
 
   // 3. دالة فتح/قفل سكشن الكومنتات للبوست
@@ -134,19 +229,19 @@ export default function CommunityPage() {
   };
 
   // 4. دالة إضافة تعليق جديد
-  const handleAddComment = (e: React.FormEvent<HTMLFormElement>, postId: number) => {
-    e.preventDefault();
-    const commentText = commentInputs[postId];
+  const submitComment = (postId: number, commentText: string) => {
     if (!commentText?.trim()) return;
-
     const newComment = {
       id: Date.now(),
-      user: "You",
-      avatar: "https://i.pravatar.cc/150?img=33",
+      user: (currentUser?.fullName || "You"),
+      avatar:
+        (currentUser?.userId
+          ? localStorage.getItem(`profile_avatar_${currentUser.userId}`)
+          : null) || "https://i.pravatar.cc/150?img=33",
       text: commentText
     };
 
-    setPosts(posts.map(post => {
+    setPosts((prev) => prev.map(post => {
       if (post.id === postId) {
         return {
           ...post,
@@ -161,7 +256,33 @@ export default function CommunityPage() {
     setCommentInputs(prev => ({ ...prev, [postId]: "" }));
   };
 
+  const onPickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!requireCommunityAuth({ mode: 'image' })) return;
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 1_500_000) {
+      alert("Please choose image under 1.5MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === "string" ? reader.result : null;
+      setSelectedImageDataUrl(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddComment = (e: React.FormEvent<HTMLFormElement>, postId: number) => {
+    e.preventDefault();
+    const commentText = commentInputs[postId];
+    if (!commentText?.trim()) return;
+    if (!requireCommunityAuth({ mode: 'comment', postId, text: commentText })) return;
+    submitComment(postId, commentText);
+  };
+
   return (
+    <>
     <div className="min-h-screen bg-[#050505] text-white pt-24 pb-32 px-4 md:px-8 relative overflow-hidden">
       
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-200 h-100 bg-[#D4AF37]/5 blur-[150px] pointer-events-none rounded-full"></div>
@@ -231,7 +352,7 @@ export default function CommunityPage() {
                         <div className="flex items-center gap-3 text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">
                           <span className={post.isVerified ? "text-[#D4AF37]" : ""}>{post.role}</span>
                           <span>•</span>
-                          <span>{post.time}</span>
+                          <span>{formatRelativeTime(post.createdAt)}</span>
                         </div>
                       </div>
                     </div>
@@ -333,7 +454,19 @@ export default function CommunityPage() {
 
                           {/* مربع إضافة تعليق جديد */}
                           <form onSubmit={(e) => handleAddComment(e, post.id)} className="flex gap-3 items-center relative mt-2 border-t border-white/5 pt-4">
-                            <Image src="https://i.pravatar.cc/150?img=33" alt="You" width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                            <Image
+                              src={
+                                (currentUser?.userId
+                                  ? localStorage.getItem(`profile_avatar_${currentUser.userId}`)
+                                  : null) || "https://i.pravatar.cc/150?img=33"
+                              }
+                              alt="You"
+                              width={32}
+                              height={32}
+                              loading="lazy"
+                              decoding="async"
+                              className="w-8 h-8 rounded-full object-cover shrink-0"
+                            />
                             <div className="relative flex-1">
                               <input 
                                 type="text" 
@@ -369,7 +502,19 @@ export default function CommunityPage() {
         <div className="max-w-3xl mx-auto">
           <form onSubmit={handlePostSubmit} className="bg-[#111]/90 backdrop-blur-xl border border-white/10 rounded-4xl p-3 flex items-center gap-2 shadow-[0_0_50px_rgba(0,0,0,0.8)] focus-within:border-[#D4AF37]/50 transition-colors">
             <div className="flex gap-1 shrink-0">
-              <button type="button" className="p-3 text-gray-400 hover:text-[#D4AF37] hover:bg-[#D4AF37]/10 rounded-full transition-colors"><ImageIcon size={20} /></button>
+              <button
+                type="button"
+                onClick={() => document.getElementById("community-image-input")?.click()}
+                className="p-3 text-gray-400 hover:text-[#D4AF37] hover:bg-[#D4AF37]/10 rounded-full transition-colors">
+                <ImageIcon size={20} />
+              </button>
+              <input
+                id="community-image-input"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onPickImage}
+              />
               <button type="button" className="hidden sm:block p-3 text-gray-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-full transition-colors"><Map size={20} /></button>
             </div>
             <input 
@@ -379,13 +524,28 @@ export default function CommunityPage() {
               placeholder="Share your museum experience..." 
               className="flex-1 bg-transparent border-none focus:outline-none text-white px-2 text-sm md:text-base placeholder:text-gray-600"
             />
-            <button type="submit" disabled={!newPostText.trim()} className={`px-6 py-3 rounded-full flex items-center gap-2 font-bold uppercase tracking-widest text-xs transition-all shrink-0 ${newPostText.trim() ? 'bg-[#D4AF37] text-black hover:bg-white hover:scale-105' : 'bg-white/5 text-gray-600 cursor-not-allowed'}`}>
-              Post <Send size={16} className={newPostText.trim() ? "translate-x-1" : ""} />
+            <button type="submit" disabled={!newPostText.trim() && !selectedImageDataUrl} className={`px-6 py-3 rounded-full flex items-center gap-2 font-bold uppercase tracking-widest text-xs transition-all shrink-0 ${newPostText.trim() || selectedImageDataUrl ? 'bg-[#D4AF37] text-black hover:bg-white hover:scale-105' : 'bg-white/5 text-gray-600 cursor-not-allowed'}`}>
+              Post <Send size={16} className={newPostText.trim() || selectedImageDataUrl ? "translate-x-1" : ""} />
             </button>
           </form>
+          {selectedImageDataUrl ? (
+            <div className="mt-3 rounded-2xl border border-white/10 bg-[#111]/80 p-3">
+              <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Selected image</div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={selectedImageDataUrl} alt="Selected upload" className="h-28 w-auto rounded-xl object-cover" />
+            </div>
+          ) : null}
         </div>
       </div>
 
     </div>
+    <LoginRequiredModal
+      open={showLoginModal}
+      onClose={() => setShowLoginModal(false)}
+      nextPath="/community"
+      title="Sign in to post in community"
+      message="You can browse the community freely. Please sign in to post, comment, or upload images."
+    />
+    </>
   );
 }

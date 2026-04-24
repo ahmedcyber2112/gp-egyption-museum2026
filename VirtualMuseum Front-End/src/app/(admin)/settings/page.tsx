@@ -1,12 +1,111 @@
 "use client";
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { 
   Save, User, Bell, Shield, Database, 
   Palette, Lock, Globe, Mail, CheckCircle 
 } from "lucide-react";
+import { getCurrentUser } from "../../../lib/authStorage";
+import { getMyProfile, updateMyProfile } from "../../../lib/authApi";
+import { getAdminArtifacts, getAdminCategories, getAdminUsers } from "../../../lib/adminApi";
 
 export default function settings() {
+  const [profile, setProfile] = useState<any>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [region, setRegion] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [notifArtifacts, setNotifArtifacts] = useState(true);
+  const [notifSystem, setNotifSystem] = useState(true);
+  const [notifMetrics, setNotifMetrics] = useState(true);
+  const [stats, setStats] = useState({ users: 0, artifacts: 0, categories: 0 });
+
+  useEffect(() => {
+    const load = async () => {
+      const me = getCurrentUser();
+      try {
+        const [profileRes, uRes, aRes, cRes] = await Promise.all([
+          getMyProfile(),
+          getAdminUsers(),
+          getAdminArtifacts(),
+          getAdminCategories(),
+        ]);
+        const p = profileRes?.data || {
+          fullName: me?.fullName || "",
+          email: me?.email || "",
+          region: me?.region || "",
+        };
+        setProfile(p);
+        setName(p.fullName || "");
+        setEmail(p.email || "");
+        setRegion(p.region || "");
+        setStats({
+          users: Array.isArray(uRes?.data) ? uRes.data.length : 0,
+          artifacts: Array.isArray(aRes?.data) ? aRes.data.length : 0,
+          categories: Array.isArray(cRes?.data) ? cRes.data.length : 0,
+        });
+      } catch {
+        setProfile({
+          fullName: me?.fullName || "",
+          email: me?.email || "",
+          region: me?.region || "",
+        });
+      }
+      const notifRaw = localStorage.getItem("admin_settings_notifications");
+      if (notifRaw) {
+        try {
+          const parsed = JSON.parse(notifRaw);
+          setNotifArtifacts(!!parsed.artifacts);
+          setNotifSystem(!!parsed.system);
+          setNotifMetrics(!!parsed.metrics);
+        } catch {}
+      }
+    };
+    load();
+  }, []);
+
+  const roleLabel = useMemo(() => {
+    const role = (getCurrentUser()?.role || "admin").toString();
+    return role.charAt(0).toUpperCase() + role.slice(1);
+  }, []);
+
+  const saveAll = async () => {
+    setSaving(true);
+    setMessage("");
+    try {
+      await updateMyProfile({
+        fullName: name.trim(),
+        region: region.trim(),
+      });
+      const raw = localStorage.getItem("currentUser");
+      const current = raw ? JSON.parse(raw) : {};
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify({
+          ...current,
+          fullName: name.trim(),
+          region: region.trim(),
+          email: email.trim(),
+        }),
+      );
+      localStorage.setItem(
+        "admin_settings_notifications",
+        JSON.stringify({
+          artifacts: notifArtifacts,
+          system: notifSystem,
+          metrics: notifMetrics,
+        }),
+      );
+      window.dispatchEvent(new Event("storage"));
+      setMessage("Settings synchronized with live profile data.");
+    } catch (e: any) {
+      setMessage(e?.message || "Failed to synchronize settings.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="p-8 space-y-10 min-h-screen pb-24">
       
@@ -17,11 +116,12 @@ export default function settings() {
           <p className="text-gray-400 text-sm italic">"Tailoring the digital heart of the Grand Museum."</p>
         </motion.div>
         
-        <button className="flex items-center gap-3 px-8 py-4 bg-[#D4AF37] text-black font-black uppercase tracking-widest rounded-2xl hover:bg-[#b5952f] transition-all shadow-[0_10px_30px_rgba(212,175,55,0.2)] active:scale-95 group">
+        <button onClick={saveAll} disabled={saving} className="flex items-center gap-3 px-8 py-4 bg-[#D4AF37] text-black font-black uppercase tracking-widest rounded-2xl hover:bg-[#b5952f] transition-all shadow-[0_10px_30px_rgba(212,175,55,0.2)] active:scale-95 group disabled:opacity-60">
           <Save className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          Synchronize Settings
+          {saving ? "Synchronizing..." : "Synchronize Settings"}
         </button>
       </div>
+      {message ? <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-gray-300">{message}</div> : null}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         
@@ -39,17 +139,21 @@ export default function settings() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Official Name</label>
-                <input type="text" defaultValue="Royal Administrator" className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all" />
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all" />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Registry Email</label>
-                <input type="email" defaultValue="admin@thegem.gov" className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all" />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all" />
               </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Region</label>
+              <input type="text" value={region} onChange={(e) => setRegion(e.target.value)} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all" />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Current Authority Role</label>
               <div className="w-full px-6 py-4 bg-white/[0.02] border border-white/5 rounded-2xl text-[#D4AF37] font-bold flex items-center gap-2">
-                <Shield size={16} /> Chief Curator & Digital Architect
+                <Shield size={16} /> {roleLabel}
               </div>
             </div>
           </div>
@@ -105,7 +209,16 @@ export default function settings() {
                   <div className="text-[10px] text-gray-500 font-medium">{item.desc}</div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" defaultChecked className="sr-only peer" />
+                  <input
+                    type="checkbox"
+                    checked={i === 0 ? notifArtifacts : i === 1 ? notifSystem : notifMetrics}
+                    onChange={(e) => {
+                      if (i === 0) setNotifArtifacts(e.target.checked);
+                      if (i === 1) setNotifSystem(e.target.checked);
+                      if (i === 2) setNotifMetrics(e.target.checked);
+                    }}
+                    className="sr-only peer"
+                  />
                   <div className="w-12 h-6 bg-gray-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D4AF37] after:peer-checked:bg-white"></div>
                 </label>
               </div>
@@ -147,6 +260,20 @@ export default function settings() {
                     <div className="w-10 h-10 bg-[#8b6f47] border border-white/5 rounded-xl"></div>
                   </div>
                </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Users</div>
+                <div className="text-white font-black text-2xl mt-1">{stats.users}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Artifacts</div>
+                <div className="text-white font-black text-2xl mt-1">{stats.artifacts}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Categories</div>
+                <div className="text-white font-black text-2xl mt-1">{stats.categories}</div>
+              </div>
             </div>
           </div>
         </motion.div>

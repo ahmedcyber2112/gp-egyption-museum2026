@@ -42,6 +42,7 @@ services:
             - "8090:8090"
         volumes:
             - backend_data_protection_keys:/var/aspnet-keys
+            - ./VirtualMuseum Front-End/src/Data:/seed-data:ro
         depends_on:
             db:
                 condition: service_healthy

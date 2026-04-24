@@ -3,8 +3,14 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Ticket, Bot } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function FloatingButtons() {
+  const pathname = usePathname();
+  if (pathname === "/AIAssistant" || pathname === "/Booking") {
+    return null;
+  }
+
   return (
     // fixed: عشان يفضل ثابت في الشاشة
     // bottom-8 right-8: مكانه في أسفل اليمين
