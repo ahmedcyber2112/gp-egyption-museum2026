@@ -7,7 +7,7 @@ This document is based on the currently verified backend source files:
 
 - Local development Swagger/API: `http://localhost:5209`
 - Local development HTTPS: `https://localhost:7032`
-- Docker Compose backend: `http://localhost:8080`
+- Docker Compose backend: `http://localhost:8090`
 
 ## Response Format
 
