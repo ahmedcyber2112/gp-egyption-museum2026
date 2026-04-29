@@ -20,6 +20,9 @@ const nextConfig = {
       { protocol: 'https', hostname: 'www.cairo24.com' },
       { protocol: 'https', hostname: 'newsroom.info' },
       { protocol: 'https', hostname: 'artdogistanbul.com' },
+      { protocol: 'https', hostname: 'drive.google.com' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'googleusercontent.com' },
     ],
   },
   experimental: {

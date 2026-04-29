@@ -32,6 +32,19 @@ const artifactBySlug = new Map(
     artifactsData.map((item) => [slugify(item?.name), item]),
 );
 
+function normalizeImageUrl(value) {
+    const url = String(value || "").trim();
+    if (!url) return "";
+
+    // Convert Google Drive share URLs to direct image endpoints.
+    const match = url.match(/[?&]id=([^&]+)/i);
+    if (url.includes("drive.google.com") && match?.[1]) {
+        return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w2000`;
+    }
+
+    return url;
+}
+
 export function mapApiArtifactToUi(artifact) {
     const translation = firstTranslation(artifact);
     const displayName = translation?.name || artifact?.slug || "Artifact";
@@ -45,7 +58,8 @@ export function mapApiArtifactToUi(artifact) {
         name: displayName,
         description: translation?.description || "No description available.",
         image:
-            artifact?.thumbnailFile?.url ||
+            normalizeImageUrl(artifact?.thumbnailFile?.url) ||
+            normalizeImageUrl(artifact?.thumbnailFileUrl) ||
             fallbackArtifact?.image ||
             "/assets/images/eh.png",
         accessionNumber:
@@ -63,7 +77,11 @@ export function mapApiArtifactToUi(artifact) {
             artifact?.discoveryLocation?.name ||
             fallbackArtifact?.discoverySite ||
             "Unknown Site",
-        image3D: artifact?.modelFile?.url || fallbackArtifact?.image3D || null,
+        image3D:
+            normalizeImageUrl(artifact?.modelFile?.url) ||
+            normalizeImageUrl(artifact?.modelFileUrl) ||
+            fallbackArtifact?.image3D ||
+            null,
         status: "published",
     };
 }
