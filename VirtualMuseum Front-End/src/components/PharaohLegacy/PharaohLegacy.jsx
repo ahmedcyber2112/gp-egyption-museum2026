@@ -6,8 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 // استيراد جميع أيقونات Lucide
 import * as LucideIcons from "lucide-react";
-// استيراد الداتا من ملف الـ JSON الخاص بك
-import categoriesData from "../../Data/categories.json";
+import { getCategories } from "../../lib/museumApi";
 // مكون ديناميكي لعرض الأيقونة بناءً على الاسم الموجود في الـ JSON
 const DynamicIcon = ({ name, size = 28 }) => {
     const IconComponent = LucideIcons[name];
@@ -20,8 +19,38 @@ const DynamicIcon = ({ name, size = 28 }) => {
 };
 
 export default function PharaohLegacy() {
-    // عرض الأقسام التي تحمل حالة "featured: true" فقط في الصفحة الرئيسية
-    const featuredCategories = categoriesData.filter((cat) => cat.featured);
+    const [featuredCategories, setFeaturedCategories] = React.useState([]);
+
+    React.useEffect(() => {
+        let isMounted = true;
+
+        async function loadCategories() {
+            try {
+                const response = await getCategories();
+                const apiCategories = Array.isArray(response?.data)
+                    ? response.data
+                    : [];
+                if (!isMounted) return;
+
+                const mapped = apiCategories.slice(0, 3).map((cat) => ({
+                    id: cat?.id || "",
+                    name: cat?.name || "Collection",
+                    title: "Collection from the museum archive.",
+                    image: "/assets/images/eh.png",
+                    itemCount: 0,
+                    hieroglyph: "𓋹",
+                    iconName: "Landmark",
+                }));
+
+                setFeaturedCategories(mapped);
+            } catch {}
+        }
+
+        loadCategories();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     return (
         <section className="py-28 bg-white relative overflow-hidden font-sans">

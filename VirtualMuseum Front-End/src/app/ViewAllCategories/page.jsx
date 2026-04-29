@@ -6,31 +6,17 @@ import { Search, LayoutGrid, Sparkles, ArrowLeft } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { getCategories } from "../../lib/museumApi";
 
-// استيراد البيانات
-import categoriesData from "../../Data/categories.json";
-
-function normalizeName(value) {
-    return String(value || "").trim().toLowerCase();
-}
-
 function mapApiCategoryToUi(category) {
-    const fallback = categoriesData.find(
-        (item) => normalizeName(item?.name) === normalizeName(category?.name),
-    );
-
     return {
-        id: fallback?.id || category?.id || "",
-        slug:
-            fallback?.slug ||
-            category?.name?.toLowerCase().replace(/\s+/g, "-") ||
-            "collection",
-        name: fallback?.name || category?.name || "Collection",
-        hieroglyph: fallback?.hieroglyph || "𓋹",
-        title: fallback?.title || "Collection from the museum archive.",
-        image: fallback?.image || "/assets/images/eh.png",
-        itemCount: fallback?.itemCount ?? 0,
-        status: fallback?.status || "published",
-        featured: fallback?.featured ?? false,
+        id: category?.id || "",
+        slug: category?.name?.toLowerCase().replace(/\s+/g, "-") || "collection",
+        name: category?.name || "Collection",
+        hieroglyph: "𓋹",
+        title: "Collection from the museum archive.",
+        image: "/assets/images/eh.png",
+        itemCount: 0,
+        status: "published",
+        featured: false,
     };
 }
 
@@ -47,7 +33,7 @@ const DynamicIcon = ({ name, size = 32 }) => {
 // --- المكون الرئيسي للملف ---
 export default function ViewAllCategories() {
     const [searchTerm, setSearchTerm] = useState("");
-    const [categories, setCategories] = useState(categoriesData);
+    const [categories, setCategories] = useState([]);
 
     useEffect(() => {
         let isMounted = true;
@@ -59,14 +45,12 @@ export default function ViewAllCategories() {
                     ? response.data.map(mapApiCategoryToUi)
                     : [];
 
-                if (!isMounted || apiCategories.length === 0) {
+                if (!isMounted) {
                     return;
                 }
 
                 setCategories(apiCategories);
-            } catch {
-                // Keep JSON fallback.
-            }
+            } catch {}
         }
 
         loadCategories();

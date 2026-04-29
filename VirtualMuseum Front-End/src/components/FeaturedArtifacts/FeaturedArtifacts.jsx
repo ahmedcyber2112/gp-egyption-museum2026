@@ -15,9 +15,6 @@ import {
 import { getArtifacts } from "../../lib/museumApi";
 import { mapApiArtifactToUi } from "../../lib/museumMappers";
 
-// استيراد الداتا الخاصة بك
-import artifactsData from "../../Data/artifacts.json";
-
 function mapApiArtifactToCard(apiArtifact) {
     const mapped = mapApiArtifactToUi(apiArtifact);
     return {
@@ -31,7 +28,7 @@ function mapApiArtifactToCard(apiArtifact) {
 }
 
 export default function FeaturedArtifacts() {
-    const [featured, setFeatured] = useState(artifactsData.slice(0, 3));
+    const [featured, setFeatured] = useState([]);
 
     useEffect(() => {
         let isMounted = true;
@@ -47,9 +44,7 @@ export default function FeaturedArtifacts() {
                 }
 
                 setFeatured(apiArtifacts.slice(0, 3).map(mapApiArtifactToCard));
-            } catch {
-                // Keep local JSON fallback.
-            }
+            } catch {}
         }
 
         loadFeatured();

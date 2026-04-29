@@ -28,7 +28,14 @@ builder.Services.AddDbContext<MuseumDbContext>(options =>
     options.UseSqlServer(connectionString);
 });
 
-var dataProtectionKeyPath = builder.Configuration["DataProtection:KeyPath"] ?? "/var/aspnet-keys";
+var dataProtectionKeyPath = builder.Configuration["DataProtection:KeyPath"];
+if (string.IsNullOrWhiteSpace(dataProtectionKeyPath))
+{
+    // Use a writable per-app directory by default across hosting environments.
+    dataProtectionKeyPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "keys");
+}
+
+Directory.CreateDirectory(dataProtectionKeyPath);
 builder.Services
     .AddDataProtection()
     .SetApplicationName("VirtualMuseum.API")
@@ -132,6 +139,9 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+var enableSwagger =
+    builder.Configuration.GetValue<bool?>("Swagger:Enabled")
+    ?? true;
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
@@ -141,12 +151,24 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 // Global exception handling - must be first
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-// Database connection validation and migration
-using (var scope = app.Services.CreateScope())
+var runMigrationsOnStartup =
+    builder.Configuration.GetValue<bool?>("Database:RunMigrationsOnStartup")
+    ?? true;
+var ensureDatabaseExistsOnStartup =
+    builder.Configuration.GetValue<bool?>("Database:EnsureDatabaseExistsOnStartup")
+    ?? false;
+
+// Database connection validation and migration (opt-in outside development)
+if (runMigrationsOnStartup)
 {
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    using var scope = app.Services.CreateScope();
+    var startupLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     var context = scope.ServiceProvider.GetRequiredService<MuseumDbContext>();
     var targetConnectionString = context.Database.GetConnectionString();
+    startupLogger.LogInformation(
+        "Database startup options: RunMigrationsOnStartup={RunMigrationsOnStartup}, EnsureDatabaseExistsOnStartup={EnsureDatabaseExistsOnStartup}",
+        runMigrationsOnStartup,
+        ensureDatabaseExistsOnStartup);
     try
     {
         const int maxRetries = 12;
@@ -154,15 +176,15 @@ using (var scope = app.Services.CreateScope())
         {
             try
             {
-                if (!string.IsNullOrWhiteSpace(targetConnectionString))
+                if (ensureDatabaseExistsOnStartup && !string.IsNullOrWhiteSpace(targetConnectionString))
                 {
-                    await EnsureDatabaseExistsAsync(targetConnectionString, logger);
+                    await EnsureDatabaseExistsAsync(targetConnectionString, startupLogger);
                 }
 
-                logger.LogInformation("Attempting database migration... (Attempt {Attempt}/{MaxRetries})", attempt, maxRetries);
+                startupLogger.LogInformation("Attempting database migration... (Attempt {Attempt}/{MaxRetries})", attempt, maxRetries);
                 await context.Database.MigrateAsync();
                 await DatabaseSeeder.SeedAsync(context);
-                logger.LogInformation("Database migrations and seeding completed successfully.");
+                startupLogger.LogInformation("Database migrations and seeding completed successfully.");
                 break;
             }
             catch (Exception) when (attempt < maxRetries)
@@ -171,16 +193,20 @@ using (var scope = app.Services.CreateScope())
             }
             catch
             {
-                logger.LogError("Database migration failed after retries. Please verify SQL Server is running and connection string in appsettings.json");
+                startupLogger.LogError("Database migration failed after retries. Please verify SQL Server is running and connection string in appsettings.json");
                 throw new InvalidOperationException("Unable to initialize database.");
             }
         }
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Database initialization failed: {Message}. Verify connection string: Server=...;Database=VirtualMuseumDB;User ID=sa;Password=...;TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=true;", ex.Message);
+        startupLogger.LogError(ex, "Database initialization failed: {Message}. Verify connection string: Server=...;Database=VirtualMuseumDB;User ID=sa;Password=...;TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=true;", ex.Message);
         throw;
     }
+}
+else
+{
+    app.Logger.LogInformation("Skipping database migration on startup. Set Database:RunMigrationsOnStartup=true to enable.");
 }
 
 static async Task EnsureDatabaseExistsAsync(string targetConnectionString, ILogger logger)
@@ -207,7 +233,7 @@ static async Task EnsureDatabaseExistsAsync(string targetConnectionString, ILogg
     logger.LogInformation("Verified database '{DatabaseName}' exists.", targetDatabase);
 }
 
-if (app.Environment.IsDevelopment())
+if (enableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
@@ -215,7 +241,7 @@ if (app.Environment.IsDevelopment())
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "3D Virtual Museum API v1");
     });
 }
-else
+if (!app.Environment.IsDevelopment())
 {
     app.UseHsts();
 }

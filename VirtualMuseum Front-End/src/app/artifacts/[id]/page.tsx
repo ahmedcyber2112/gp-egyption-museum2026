@@ -25,7 +25,6 @@ const ModelViewer = dynamic(
     () => import("../../../components/ModelViewer/ModelViewer"),
     { ssr: false },
 );
-import artifactsData from "../../../Data/artifacts.json";
 
 type Artifact = {
     id: string;
@@ -62,20 +61,6 @@ export default function ArtifactDetails() {
     useEffect(() => {
         let isMounted = true;
 
-        const foundFallback = artifactsData.find((item) => item.id === id) as
-            | Artifact
-            | undefined;
-        setArtifact(foundFallback ?? null);
-
-        if (foundFallback) {
-            const liked: Artifact[] = JSON.parse(
-                localStorage.getItem("liked_artifacts") || "[]",
-            );
-            setIsFavorite(
-                liked.some((item: Artifact) => item.id === foundFallback.id),
-            );
-        }
-
         async function loadFromApi() {
             if (!id) return;
 
@@ -98,9 +83,7 @@ export default function ArtifactDetails() {
                         (item: Artifact) => item.id === mappedArtifact.id,
                     ),
                 );
-            } catch {
-                // Keep local JSON fallback.
-            }
+            } catch {}
         }
 
         loadFromApi();

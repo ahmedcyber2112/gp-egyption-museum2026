@@ -22,46 +22,6 @@ import {
 } from "../../lib/authGate";
 import LoginRequiredModal from "../Auth/LoginRequiredModal";
 
-// --- استيراد البيانات مباشرة من ملف JSON ---
-import artifactsData from "../../Data/artifacts.json";
-
-function slugify(value) {
-    return String(value || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .trim()
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-");
-}
-
-function mergeArtifactsWithApi(baseArtifacts, apiArtifacts) {
-    const merged = [...baseArtifacts];
-    const indexBySlug = new Map(
-        merged.map((item, index) => [slugify(item?.name), index]),
-    );
-
-    for (const apiItem of apiArtifacts) {
-        const key = slugify(apiItem?.name || apiItem?.accessionNumber || "");
-        const existingIndex = indexBySlug.get(key);
-
-        if (existingIndex === undefined) {
-            merged.push(apiItem);
-            continue;
-        }
-
-        const baseItem = merged[existingIndex];
-        merged[existingIndex] = {
-            ...baseItem,
-            ...apiItem,
-            categoryId: baseItem?.categoryId || apiItem?.categoryId || "",
-            image: apiItem?.image || baseItem?.image,
-            image3D: apiItem?.image3D || baseItem?.image3D || null,
-        };
-    }
-
-    return merged;
-}
-
 const categoriesMap = {
     cat_001: "Statues",
     cat_002: "Statues",
@@ -225,7 +185,7 @@ export default function CategoryPage() {
     const router = useRouter();
     const [activeCategory, setActiveCategory] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
-    const [artifacts, setArtifacts] = useState(artifactsData);
+    const [artifacts, setArtifacts] = useState([]);
     const [showLoginModal, setShowLoginModal] = useState(false);
 
     useEffect(() => {
@@ -238,16 +198,11 @@ export default function CategoryPage() {
                     ? response.data.map(mapApiArtifactToUi)
                     : [];
 
-                if (!isMounted || apiArtifacts.length === 0) {
+                if (!isMounted) {
                     return;
                 }
-
-                setArtifacts((current) =>
-                    mergeArtifactsWithApi(current, apiArtifacts),
-                );
-            } catch {
-                // Keep JSON fallback.
-            }
+                setArtifacts(apiArtifacts);
+            } catch {}
         }
 
         loadArtifacts();

@@ -22,46 +22,6 @@ import {
 } from "../../../lib/authGate";
 import LoginRequiredModal from "../../../components/Auth/LoginRequiredModal";
 
-// استيراد الداتا
-import artifactsData from "../../../Data/artifacts.json";
-
-function slugify(value) {
-    return String(value || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .trim()
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-");
-}
-
-function mergeArtifactsWithApi(baseArtifacts, apiArtifacts) {
-    const merged = [...baseArtifacts];
-    const indexBySlug = new Map(
-        merged.map((item, index) => [slugify(item?.name), index]),
-    );
-
-    for (const apiItem of apiArtifacts) {
-        const key = slugify(apiItem?.name || apiItem?.accessionNumber || "");
-        const existingIndex = indexBySlug.get(key);
-
-        if (existingIndex === undefined) {
-            merged.push(apiItem);
-            continue;
-        }
-
-        const baseItem = merged[existingIndex];
-        merged[existingIndex] = {
-            ...baseItem,
-            ...apiItem,
-            categoryId: baseItem?.categoryId || apiItem?.categoryId || "",
-            image: apiItem?.image || baseItem?.image,
-            image3D: apiItem?.image3D || baseItem?.image3D || null,
-        };
-    }
-
-    return merged;
-}
-
 // =====================================================================
 // ================= 1. مكون محتوى الكارت (نفس تصميم الرئيسية) =================
 // =====================================================================
@@ -179,17 +139,10 @@ export default function CategoryGalleryPage() {
     const params = useParams();
     const router = useRouter();
     const id = params.id;
-    const [artifacts, setArtifacts] = useState(
-        artifactsData.filter((artifact) => artifact.categoryId === id),
-    );
+    const [artifacts, setArtifacts] = useState([]);
     const [showLoginModal, setShowLoginModal] = useState(false);
 
     useEffect(() => {
-        const fallback = artifactsData.filter(
-            (artifact) => artifact.categoryId === id,
-        );
-        setArtifacts(fallback);
-
         let isMounted = true;
 
         async function loadFromApi() {
@@ -207,16 +160,11 @@ export default function CategoryGalleryPage() {
                     )
                     .map(mapApiArtifactToUi);
 
-                if (!isMounted || mapped.length === 0) {
+                if (!isMounted) {
                     return;
                 }
-
-                setArtifacts((current) =>
-                    mergeArtifactsWithApi(current, mapped),
-                );
-            } catch {
-                // Keep JSON fallback when API fails.
-            }
+                setArtifacts(mapped);
+            } catch {}
         }
 
         loadFromApi();
