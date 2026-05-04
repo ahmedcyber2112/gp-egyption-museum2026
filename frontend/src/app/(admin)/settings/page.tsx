@@ -7,7 +7,13 @@ import {
 } from "lucide-react";
 import { getCurrentUser } from "../../../lib/authStorage";
 import { getMyProfile, updateMyProfile } from "../../../lib/authApi";
-import { getAdminArtifacts, getAdminCategories, getAdminUsers } from "../../../lib/adminApi";
+import {
+  getAdminArtifacts,
+  getAdminCategories,
+  getAdminUsers,
+  getAppStatus,
+  setAppStatus,
+} from "../../../lib/adminApi";
 
 export default function settings() {
   const [profile, setProfile] = useState<any>(null);
@@ -19,17 +25,20 @@ export default function settings() {
   const [notifArtifacts, setNotifArtifacts] = useState(true);
   const [notifSystem, setNotifSystem] = useState(true);
   const [notifMetrics, setNotifMetrics] = useState(true);
+  const [appOpen, setAppOpen] = useState(true);
+  const [appCloseMessage, setAppCloseMessage] = useState("The application is temporarily unavailable.");
   const [stats, setStats] = useState({ users: 0, artifacts: 0, categories: 0 });
 
   useEffect(() => {
     const load = async () => {
       const me = getCurrentUser();
       try {
-        const [profileRes, uRes, aRes, cRes] = await Promise.all([
+        const [profileRes, uRes, aRes, cRes, appStatusRes] = await Promise.all([
           getMyProfile(),
           getAdminUsers(),
           getAdminArtifacts(),
           getAdminCategories(),
+          getAppStatus(),
         ]);
         const p = profileRes?.data || {
           fullName: me?.fullName || "",
@@ -45,6 +54,11 @@ export default function settings() {
           artifacts: Array.isArray(aRes?.data) ? aRes.data.length : 0,
           categories: Array.isArray(cRes?.data) ? cRes.data.length : 0,
         });
+        const maintenanceEnabled = !!appStatusRes?.data?.maintenanceEnabled;
+        setAppOpen(!maintenanceEnabled);
+        setAppCloseMessage(
+          appStatusRes?.data?.message || "The application is temporarily unavailable.",
+        );
       } catch {
         setProfile({
           fullName: me?.fullName || "",
@@ -77,6 +91,10 @@ export default function settings() {
       await updateMyProfile({
         fullName: name.trim(),
         region: region.trim(),
+      });
+      await setAppStatus({
+        maintenanceEnabled: !appOpen,
+        message: appCloseMessage.trim() || "The application is temporarily unavailable.",
       });
       const raw = localStorage.getItem("currentUser");
       const current = raw ? JSON.parse(raw) : {};
@@ -223,6 +241,43 @@ export default function settings() {
                 </label>
               </div>
             ))}
+            <div className="p-5 bg-white/[0.02] border border-white/5 rounded-3xl group hover:bg-white/[0.04] transition-all">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-sm font-bold text-white mb-1">Application Availability</div>
+                  <div className="text-[10px] text-gray-500 font-medium">
+                    Toggle whether users can access the app now.
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={appOpen}
+                    onChange={(e) => setAppOpen(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-12 h-6 bg-gray-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D4AF37] after:peer-checked:bg-white"></div>
+                </label>
+              </div>
+              <div className="mt-3">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
+                  Closure Message
+                </label>
+                <input
+                  type="text"
+                  value={appCloseMessage}
+                  onChange={(e) => setAppCloseMessage(e.target.value)}
+                  className="mt-2 w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all text-sm"
+                  placeholder="The application is temporarily unavailable."
+                />
+                <div className="mt-2 text-[10px] text-gray-500">
+                  Current mode:{" "}
+                  <span className={appOpen ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>
+                    {appOpen ? "OPEN" : "CLOSED"}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </motion.div>
 

@@ -25,7 +25,6 @@ Thumbs.db
 **/[Bb]in/
 **/[Oo]bj/
 **/TestResults/
-**/artifacts/
 
 # NuGet packages and symbols
 *.nupkg

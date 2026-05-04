@@ -135,7 +135,12 @@ export async function apiRequest(path, options = {}) {
                 ...requestHeaders,
                 Authorization: `Bearer ${newAccessToken}`,
             };
-            response = await sendRequest(url, method, retryHeaders, body);
+            response = await sendRequest(
+                `${primaryBase}${path}`,
+                method,
+                retryHeaders,
+                body,
+            );
             payload = await parsePayload(response);
         }
     }

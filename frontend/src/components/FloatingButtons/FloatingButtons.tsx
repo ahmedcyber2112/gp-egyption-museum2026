@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 
 export default function FloatingButtons() {
   const pathname = usePathname();
-  if (pathname === "/AIAssistant" || pathname === "/Booking") {
+  if (pathname !== "/") {
     return null;
   }
 

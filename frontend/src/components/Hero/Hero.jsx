@@ -13,9 +13,9 @@ import 'swiper/css/navigation';
 
 export default function Hero() {
   const sliderImages = [
-    '/assets/images/20221104-dsc_4372-edit-copy.jpeg',
-    '/assets/images/grand-egyptian-museum-at-night.jpg',
-    '/assets/images/The-Grand-Egyptian-Museum.jpg',
+    '/assets/images/1.jpg',
+    '/assets/images/2.jpg',
+    '/assets/images/3.jpg',
   ];
 
   // --- Parallax Logic ---

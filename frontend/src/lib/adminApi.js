@@ -62,3 +62,12 @@ export function createAdminFile(payload) {
     return apiRequest("/api/files", { method: "POST", body: payload });
 }
 
+// Application status (maintenance open/close)
+export function getAppStatus() {
+    return apiRequest("/api/app-status");
+}
+
+export function setAppStatus(payload) {
+    return apiRequest("/api/app-status", { method: "PUT", body: payload });
+}
+
