@@ -51,7 +51,7 @@ function isExcludedPath(pathname: string): boolean {
 export default function MaintenanceGate() {
     const pathname = usePathname();
     const router = useRouter();
-    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const intervalRef = useRef<number | null>(null);
 
     const bases = useMemo(() => apiBaseUrls(), []);
 
