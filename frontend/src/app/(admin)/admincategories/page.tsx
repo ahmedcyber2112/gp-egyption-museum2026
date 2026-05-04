@@ -21,7 +21,7 @@ export default function AdminCategories() {
     const [saving, setSaving] = useState(false);
 
     const total = useMemo(() => categories.length, [categories.length]);
-
+// test
     const load = async () => {
         setLoading(true);
         setError("");
