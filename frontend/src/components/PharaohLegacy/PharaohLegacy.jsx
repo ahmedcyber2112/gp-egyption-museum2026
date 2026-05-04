@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react";
 // استيراد جميع أيقونات Lucide
 import * as LucideIcons from "lucide-react";
 import { getCategories } from "../../lib/museumApi";
+import { resolveGalleryCardImage } from "../../lib/galleryCardImages";
 // مكون ديناميكي لعرض الأيقونة بناءً على الاسم الموجود في الـ JSON
 const DynamicIcon = ({ name, size = 28 }) => {
     const IconComponent = LucideIcons[name];
@@ -32,15 +33,19 @@ export default function PharaohLegacy() {
                     : [];
                 if (!isMounted) return;
 
-                const mapped = apiCategories.slice(0, 3).map((cat) => ({
-                    id: cat?.id || "",
-                    name: cat?.name || "Collection",
-                    title: "Collection from the museum archive.",
-                    image: "/assets/images/eh.png",
-                    itemCount: 0,
-                    hieroglyph: "𓋹",
-                    iconName: "Landmark",
-                }));
+                const mapped = apiCategories.slice(0, 3).map((cat) => {
+                    const name = cat?.name || "Collection";
+
+                    return {
+                        id: cat?.id || "",
+                        name,
+                        title: "Collection from the museum archive.",
+                        image: resolveGalleryCardImage(name),
+                        itemCount: 0,
+                        hieroglyph: "𓋹",
+                        iconName: "Landmark",
+                    };
+                });
 
                 setFeaturedCategories(mapped);
             } catch {}

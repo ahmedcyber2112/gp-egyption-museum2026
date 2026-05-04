@@ -5,21 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, LayoutGrid, Sparkles, ArrowLeft } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { getCategories } from "../../lib/museumApi";
-
-const categoryCardImages = [
-    "/assets/images/1.png",
-    "/assets/images/2.png",
-    "/assets/images/3.png",
-];
+import { resolveGalleryCardImage } from "../../lib/galleryCardImages";
 
 function mapApiCategoryToUi(category) {
     const name = category?.name || "Collection";
-    const hashBase = [...name].reduce(
-        (acc, ch) => acc + ch.charCodeAt(0),
-        0,
-    );
-    const cardImage =
-        categoryCardImages[hashBase % categoryCardImages.length];
+
+    const cardImage = resolveGalleryCardImage(name);
 
     return {
         id: category?.id || "",
