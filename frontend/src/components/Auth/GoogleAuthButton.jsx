@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { googleLogin } from "../../lib/authApi";
+import { apiRequest } from "../../lib/api";
 import { setAuthSession } from "../../lib/authStorage";
 import { consumePostLoginRedirect } from "../../lib/authGate";
 
@@ -31,7 +32,14 @@ export default function GoogleAuthButton({ variant = "default" }) {
             setError("");
             setLoading(true);
             try {
-                const response = await googleLogin({ idToken });
+                let response = await googleLogin({ idToken });
+                if (!response?.success || !response?.data) {
+                    // Fallback for servers still wired to /api/auth/google
+                    response = await apiRequest("/api/auth/google", {
+                        method: "POST",
+                        body: { idToken },
+                    });
+                }
                 if (!response?.success || !response?.data) {
                     throw new Error(response?.message || "Google login failed.");
                 }
@@ -111,12 +119,8 @@ export default function GoogleAuthButton({ variant = "default" }) {
             return;
         }
 
-        // Trigger Google's One Tap / popup chooser
-        g.prompt((notification) => {
-            if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
-                setError("Google popup was blocked. Please allow popups and try again.");
-            }
-        });
+        // Trigger dedicated Google sign-in popup.
+        g.prompt();
     }, [clientId, ready]);
 
     return (

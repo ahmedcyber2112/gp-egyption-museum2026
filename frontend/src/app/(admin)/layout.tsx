@@ -166,7 +166,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 flex flex-col relative overflow-hidden z-10">
         
         {/* Header */}
-        <header className="h-20 bg-[#0a0a0f]/60 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4 md:px-8">
+        <header className="h-20 bg-[#0a0a0f]/60 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4 md:px-8 relative z-[2100]">
           <div className="flex items-center gap-4">
             {/* زر الجوال */}
             <button 

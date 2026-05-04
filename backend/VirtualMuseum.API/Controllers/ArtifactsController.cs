@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using VirtualMuseum.API.DTOs;
 using VirtualMuseum.Application.Services;
 using VirtualMuseum.Domain.Entities;
+using VirtualMuseum.Infrastructure.Data;
 
 namespace VirtualMuseum.API.Controllers;
 
@@ -11,11 +13,16 @@ namespace VirtualMuseum.API.Controllers;
 public class ArtifactsController : ControllerBase
 {
     private readonly ArtifactService _artifactService;
+    private readonly MuseumDbContext _db;
     private readonly ILogger<ArtifactsController> _logger;
 
-    public ArtifactsController(ArtifactService artifactService, ILogger<ArtifactsController> logger)
+    public ArtifactsController(
+        ArtifactService artifactService,
+        MuseumDbContext db,
+        ILogger<ArtifactsController> logger)
     {
         _artifactService = artifactService;
+        _db = db;
         _logger = logger;
     }
 
@@ -39,6 +46,38 @@ public class ArtifactsController : ControllerBase
         if (artifact == null)
             return NotFound(new ApiResponse(false, "Artifact not found"));
         return Ok(new ApiResponse<ArtifactResponseDto>(true, MapArtifact(artifact)));
+    }
+
+    [HttpGet("top-viewed-3d")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<TopViewed3DArtifactDto>>), 200)]
+    public async Task<IActionResult> GetTopViewed3D(CancellationToken cancellationToken)
+    {
+        var viewCounts = await _db.ArtifactViews
+            .AsNoTracking()
+            .GroupBy(v => v.ArtifactId)
+            .Select(g => new { ArtifactId = g.Key, Views = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        var countMap = viewCounts.ToDictionary(x => x.ArtifactId, x => x.Views);
+
+        var artifacts = await _db.Artifacts
+            .AsNoTracking()
+            .Where(a => a.ModelFileId != null)
+            .Select(a => new { a.Id, a.Slug })
+            .ToListAsync(cancellationToken);
+
+        var result = artifacts
+            .Select(a => new TopViewed3DArtifactDto(
+                a.Id,
+                a.Slug,
+                countMap.TryGetValue(a.Id, out var views) ? views : 0))
+            .OrderByDescending(a => a.Views)
+            .ThenBy(a => a.Slug)
+            .Take(5)
+            .ToList();
+
+        return Ok(new ApiResponse<IEnumerable<TopViewed3DArtifactDto>>(true, result));
     }
 
     [HttpPost]
@@ -177,4 +216,9 @@ public class ArtifactsController : ControllerBase
         FileDto? ModelFile,
         FileDto? ThumbnailFile,
         List<ArtifactTranslationDto> Translations);
+
+    public sealed record TopViewed3DArtifactDto(
+        Guid Id,
+        string Slug,
+        int Views);
 }

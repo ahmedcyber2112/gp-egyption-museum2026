@@ -6,14 +6,28 @@ import { Search, LayoutGrid, Sparkles, ArrowLeft } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { getCategories } from "../../lib/museumApi";
 
+const categoryCardImages = [
+    "/assets/images/1.jpg",
+    "/assets/images/2.jpg",
+    "/assets/images/3.jpg",
+];
+
 function mapApiCategoryToUi(category) {
+    const name = category?.name || "Collection";
+    const hashBase = [...name].reduce(
+        (acc, ch) => acc + ch.charCodeAt(0),
+        0,
+    );
+    const cardImage =
+        categoryCardImages[hashBase % categoryCardImages.length];
+
     return {
         id: category?.id || "",
-        slug: category?.name?.toLowerCase().replace(/\s+/g, "-") || "collection",
-        name: category?.name || "Collection",
+        slug: name.toLowerCase().replace(/\s+/g, "-"),
+        name,
         hieroglyph: "𓋹",
         title: "Collection from the museum archive.",
-        image: "/assets/images/eh.png",
+        image: cardImage,
         itemCount: 0,
         status: "published",
         featured: false,

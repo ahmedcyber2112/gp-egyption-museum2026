@@ -43,6 +43,9 @@ export function deleteAdminUser(id) {
 export function getAdminArtifacts() {
     return apiRequest("/api/artifacts");
 }
+export function getTopViewed3DArtifacts() {
+    return apiRequest("/api/artifacts/top-viewed-3d");
+}
 export function createArtifact(payload) {
     return apiRequest("/api/artifacts", { method: "POST", body: payload });
 }

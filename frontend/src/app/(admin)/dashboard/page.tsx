@@ -10,6 +10,7 @@ import {
 import {
   getAdminArtifacts,
   getAdminCategories,
+  getTopViewed3DArtifacts,
   getAdminUsers,
 } from "../../../lib/adminApi";
 
@@ -19,6 +20,7 @@ export default function dashboard() {
   const [artifacts, setArtifacts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [topViewed3D, setTopViewed3D] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -27,14 +29,16 @@ export default function dashboard() {
       setLoading(true);
       setError("");
       try {
-        const [artRes, catRes, userRes] = await Promise.all([
+        const [artRes, catRes, userRes, topViewedRes] = await Promise.all([
           getAdminArtifacts(),
           getAdminCategories(),
           getAdminUsers(),
+          getTopViewed3DArtifacts(),
         ]);
         setArtifacts(Array.isArray(artRes?.data) ? artRes.data : []);
         setCategories(Array.isArray(catRes?.data) ? catRes.data : []);
         setUsers(Array.isArray(userRes?.data) ? userRes.data : []);
+        setTopViewed3D(Array.isArray(topViewedRes?.data) ? topViewedRes.data : []);
       } catch (e: any) {
         setError(e?.message || "Failed to load dashboard data.");
       } finally {
@@ -84,14 +88,21 @@ export default function dashboard() {
     }));
   }, [artifacts]);
 
-  const mostViewedArtifacts = useMemo(
-    () =>
-      artifacts.slice(0, 5).map((a, idx) => ({
+  const mostViewedArtifacts = useMemo(() => {
+    if (topViewed3D.length > 0) {
+      return topViewed3D.map((a, idx) => ({
         name: a.slug || `Artifact ${idx + 1}`,
-        views: Number(a.weight || 0) + (a.modelFileId ? 10 : 1),
-      })),
-    [artifacts],
-  );
+        views: Number(a.views || 0),
+      }));
+    }
+    return artifacts
+      .filter((a) => !!a.modelFileId)
+      .slice(0, 5)
+      .map((a, idx) => ({
+        name: a.slug || `Artifact ${idx + 1}`,
+        views: 0,
+      }));
+  }, [artifacts, topViewed3D]);
 
   const activityTimeline = useMemo(
     () =>
