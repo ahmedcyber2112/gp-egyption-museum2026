@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
 using VirtualMuseum.API.DTOs;
 using VirtualMuseum.Application.Services;
 using VirtualMuseum.Domain.Entities;
@@ -244,22 +243,6 @@ public class ArtifactsController : ControllerBase
         Guid Id,
         string Slug,
         int Views);
-
-    public sealed record ArtifactUpsertDto(
-        [property: Required] string Slug,
-        Guid? EraId,
-        Guid? CategoryId,
-        Guid? MaterialId,
-        Guid? DiscoveryLocationId,
-        string? DiscoverySite,
-        Guid? ModelFileId,
-        Guid? ThumbnailFileId,
-        decimal? Height,
-        decimal? Width,
-        decimal? Depth,
-        decimal? Weight,
-        Guid? CreatedBy,
-        string? HistoricalContext);
 
     private async Task<Guid?> ResolveDiscoveryLocationIdAsync(Guid? discoveryLocationId, string? discoverySite, CancellationToken cancellationToken)
     {

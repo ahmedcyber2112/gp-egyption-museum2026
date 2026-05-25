@@ -74,3 +74,8 @@ export function setAppStatus(payload) {
     return apiRequest("/api/app-status", { method: "PUT", body: payload });
 }
 
+// Bookings (admin — synced from mobile app and API clients)
+export function getAdminBookings() {
+    return apiRequest("/api/bookings");
+}
+

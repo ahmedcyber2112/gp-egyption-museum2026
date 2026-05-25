@@ -61,6 +61,11 @@ builder.Services.AddScoped<MaterialService>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<UserService>();
 
+builder.Services.AddHttpClient("N8n", client =>
+{
+    client.Timeout = TimeSpan.FromMinutes(2);
+});
+
 // JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("Jwt:Key (or Jwt:Secret) is not configured in appsettings.json");
