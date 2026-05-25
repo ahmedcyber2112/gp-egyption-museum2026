@@ -34,7 +34,7 @@ export function mapApiArtifactToUi(artifact) {
     const translation = firstTranslation(artifact);
     const displayName = translation?.name || artifact?.slug || "Artifact";
     const storyKing = translation?.historicalStory?.trim() || "Unknown";
-    const historicalContext = translation?.historicalStory?.trim() || "";
+    const historicalContext = translation?.description?.trim() || "";
 
     return {
         id: artifact?.id || "",

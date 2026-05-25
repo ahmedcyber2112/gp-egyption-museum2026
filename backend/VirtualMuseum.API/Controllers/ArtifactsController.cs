@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
 using VirtualMuseum.API.DTOs;
 using VirtualMuseum.Application.Services;
 using VirtualMuseum.Domain.Entities;
@@ -107,7 +106,7 @@ public class ArtifactsController : ControllerBase
             Weight = request.Weight,
             CreatedBy = request.CreatedBy,
         };
-        AttachHistoricalContext(artifact, request.HistoricalContext);
+        AttachTranslationFields(artifact, request.AssociatedKing, request.HistoricalContext);
         var created = await _artifactService.CreateAsync(artifact, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, new ApiResponse<ArtifactResponseDto>(true, MapArtifact(created)));
     }
@@ -121,11 +120,19 @@ public class ArtifactsController : ControllerBase
     {
         if (request == null)
             return BadRequest(new ApiResponse(false, "Invalid request body"));
-        var existing = await _artifactService.GetByIdAsync(id, cancellationToken);
-        if (existing == null)
-            return NotFound(new ApiResponse(false, "Artifact not found"));
         if (string.IsNullOrWhiteSpace(request.Slug))
             return BadRequest(new ApiResponse(false, "Slug is required"));
+        var existing = await _db.Artifacts
+            .Include(a => a.Translations)
+            .Include(a => a.Era)
+            .Include(a => a.Category)
+            .Include(a => a.Material)
+            .Include(a => a.DiscoveryLocation)
+            .Include(a => a.ModelFile)
+            .Include(a => a.ThumbnailFile)
+            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+        if (existing == null)
+            return NotFound(new ApiResponse(false, "Artifact not found"));
         existing.Slug = request.Slug.Trim();
         existing.EraId = request.EraId;
         existing.CategoryId = request.CategoryId;
@@ -138,7 +145,7 @@ public class ArtifactsController : ControllerBase
         existing.Depth = request.Depth;
         existing.Weight = request.Weight;
         existing.CreatedBy = request.CreatedBy;
-        AttachHistoricalContext(existing, request.HistoricalContext);
+        AttachTranslationFields(existing, request.AssociatedKing, request.HistoricalContext);
         await _artifactService.UpdateAsync(existing, cancellationToken);
         return Ok(new ApiResponse<ArtifactResponseDto>(true, MapArtifact(existing)));
     }
@@ -245,22 +252,6 @@ public class ArtifactsController : ControllerBase
         string Slug,
         int Views);
 
-    public sealed record ArtifactUpsertDto(
-        [property: Required] string Slug,
-        Guid? EraId,
-        Guid? CategoryId,
-        Guid? MaterialId,
-        Guid? DiscoveryLocationId,
-        string? DiscoverySite,
-        Guid? ModelFileId,
-        Guid? ThumbnailFileId,
-        decimal? Height,
-        decimal? Width,
-        decimal? Depth,
-        decimal? Weight,
-        Guid? CreatedBy,
-        string? HistoricalContext);
-
     private async Task<Guid?> ResolveDiscoveryLocationIdAsync(Guid? discoveryLocationId, string? discoverySite, CancellationToken cancellationToken)
     {
         if (discoveryLocationId.HasValue)
@@ -283,23 +274,37 @@ public class ArtifactsController : ControllerBase
         return created.Id;
     }
 
-    private static void AttachHistoricalContext(Artifact artifact, string? historicalContext)
+    private static void AttachTranslationFields(Artifact artifact, string? associatedKing, string? historicalContext)
     {
+        var kingText = (associatedKing ?? string.Empty).Trim();
         var contextText = (historicalContext ?? string.Empty).Trim();
         var translation = artifact.Translations.FirstOrDefault(t => t.LanguageCode == "en");
-        if (translation == null && !string.IsNullOrWhiteSpace(contextText))
+
+        if (translation == null && (string.IsNullOrWhiteSpace(kingText) && string.IsNullOrWhiteSpace(contextText)))
+            return;
+
+        if (translation == null)
         {
             artifact.Translations.Add(new ArtifactTranslation
             {
                 LanguageCode = "en",
                 Name = artifact.Slug,
-                HistoricalStory = contextText
+                HistoricalStory = string.IsNullOrWhiteSpace(kingText) ? null : kingText,
+                Description = string.IsNullOrWhiteSpace(contextText) ? null : contextText
             });
             return;
         }
-        if (translation == null)
-            return;
-        translation.HistoricalStory = string.IsNullOrWhiteSpace(contextText) ? null : contextText;
+
+        if (!string.IsNullOrWhiteSpace(kingText))
+            translation.HistoricalStory = kingText;
+        else if (associatedKing != null)
+            translation.HistoricalStory = null;
+
+        if (!string.IsNullOrWhiteSpace(contextText))
+            translation.Description = contextText;
+        else if (historicalContext != null)
+            translation.Description = null;
+
         if (string.IsNullOrWhiteSpace(translation.Name))
             translation.Name = artifact.Slug;
     }

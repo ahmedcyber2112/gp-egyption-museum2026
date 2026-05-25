@@ -68,6 +68,7 @@ export default function Models3D() {
     const [saving, setSaving] = useState(false);
     const [thumbnailUrl, setThumbnailUrl] = useState("");
     const [modelUrl, setModelUrl] = useState("");
+    const [associatedKing, setAssociatedKing] = useState("");
     const [historicalContext, setHistoricalContext] = useState("");
     const [discoverySite, setDiscoverySite] = useState("");
 
@@ -110,6 +111,7 @@ export default function Models3D() {
         setWeight("");
         setThumbnailUrl("");
         setModelUrl("");
+        setAssociatedKing("");
         setHistoricalContext("");
         setDiscoverySite("");
         setShowUploadModal(true);
@@ -132,7 +134,15 @@ export default function Models3D() {
         const englishTranslation = Array.isArray(model.translations)
             ? model.translations.find((t: any) => t?.languageCode === "en") || model.translations[0]
             : null;
-        setHistoricalContext(englishTranslation?.historicalStory || "");
+        const story = (englishTranslation?.historicalStory || "").trim();
+        const desc = (englishTranslation?.description || "").trim();
+        if (!desc && story.length > 50) {
+            setHistoricalContext(story);
+            setAssociatedKing("Unknown");
+        } else {
+            setAssociatedKing(story);
+            setHistoricalContext(desc);
+        }
         setDiscoverySite(model.discoveryLocation?.name || "");
         setShowUploadModal(true);
         setError("");
@@ -168,6 +178,7 @@ export default function Models3D() {
                 eraId: eraId || null,
                 materialId: materialId || null,
                 discoverySite: discoverySite.trim() || null,
+                associatedKing: associatedKing.trim() || null,
                 historicalContext: historicalContext.trim() || null,
                 modelFileId,
                 thumbnailFileId,
@@ -550,16 +561,28 @@ export default function Models3D() {
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-black text-[#D4AF37] uppercase tracking-[0.2em] mb-3">
-                                            Historical Context
+                                            Associated King
                                         </label>
                                         <input
-                                            value={historicalContext}
-                                            onChange={(e) => setHistoricalContext(e.target.value)}
+                                            value={associatedKing}
+                                            onChange={(e) => setAssociatedKing(e.target.value)}
                                             type="text"
-                                            placeholder="Brief historical context"
+                                            placeholder="e.g. Tutankhamun"
                                             className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all"
                                         />
                                     </div>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-[#D4AF37] uppercase tracking-[0.2em] mb-3">
+                                        Historical Context
+                                    </label>
+                                    <textarea
+                                        value={historicalContext}
+                                        onChange={(e) => setHistoricalContext(e.target.value)}
+                                        rows={4}
+                                        placeholder="Long historical narrative"
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all resize-y"
+                                    />
                                 </div>
 
                                 <div>

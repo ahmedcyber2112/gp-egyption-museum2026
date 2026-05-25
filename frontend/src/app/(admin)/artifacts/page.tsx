@@ -46,6 +46,7 @@ export default function Artifacts() {
   const [materialId, setMaterialId] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [modelUrl, setModelUrl] = useState("");
+  const [associatedKing, setAssociatedKing] = useState("");
   const [historicalContext, setHistoricalContext] = useState("");
   const [discoverySite, setDiscoverySite] = useState("");
   const [saving, setSaving] = useState(false);
@@ -90,6 +91,7 @@ export default function Artifacts() {
     setMaterialId("");
     setThumbnailUrl("");
     setModelUrl("");
+    setAssociatedKing("");
     setHistoricalContext("");
     setDiscoverySite("");
     setShowAddModal(true);
@@ -106,7 +108,15 @@ export default function Artifacts() {
     const englishTranslation = Array.isArray(artifact.translations)
       ? artifact.translations.find((t: any) => t?.languageCode === "en") || artifact.translations[0]
       : null;
-    setHistoricalContext(englishTranslation?.historicalStory || "");
+    const story = (englishTranslation?.historicalStory || "").trim();
+    const desc = (englishTranslation?.description || "").trim();
+    if (!desc && story.length > 50) {
+      setHistoricalContext(story);
+      setAssociatedKing("Unknown");
+    } else {
+      setAssociatedKing(story);
+      setHistoricalContext(desc);
+    }
     setDiscoverySite(artifact.discoveryLocation?.name || "");
     setShowAddModal(true);
   };
@@ -191,6 +201,7 @@ export default function Artifacts() {
         eraId: eraId || null,
         materialId: materialId || null,
         discoverySite: discoverySite.trim() || null,
+        associatedKing: associatedKing.trim() || null,
         historicalContext: historicalContext.trim() || null,
         modelFileId,
         thumbnailFileId,
@@ -459,15 +470,25 @@ export default function Artifacts() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#D4AF37] uppercase tracking-widest mb-2">Historical Context</label>
+                    <label className="block text-xs font-bold text-[#D4AF37] uppercase tracking-widest mb-2">Associated King</label>
                     <input
                       type="text"
-                      value={historicalContext}
-                      onChange={(e) => setHistoricalContext(e.target.value)}
+                      value={associatedKing}
+                      onChange={(e) => setAssociatedKing(e.target.value)}
                       className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all"
-                      placeholder="Brief historical context"
+                      placeholder="e.g. Tutankhamun"
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#D4AF37] uppercase tracking-widest mb-2">Historical Context</label>
+                  <textarea
+                    value={historicalContext}
+                    onChange={(e) => setHistoricalContext(e.target.value)}
+                    rows={4}
+                    className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:border-[#D4AF37]/50 transition-all resize-y"
+                    placeholder="Long historical narrative for the artifact page"
+                  />
                 </div>
 
                 <div>

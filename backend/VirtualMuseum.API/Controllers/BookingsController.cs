@@ -33,6 +33,28 @@ public class BookingsController : ControllerBase
         if (!Guid.TryParse(userIdRaw, out var userId))
             return Unauthorized(new ApiResponse(false, "Invalid token"));
 
+        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        var tokenEmail = User.FindFirstValue(ClaimTypes.Email)?.Trim();
+
+        var visitorEmail = request.VisitorEmail.Trim();
+        if (string.IsNullOrWhiteSpace(visitorEmail) ||
+            visitorEmail.Equals("unknown@example.com", StringComparison.OrdinalIgnoreCase))
+        {
+            visitorEmail = tokenEmail ?? user?.Email ?? visitorEmail;
+        }
+
+        var visitorName = request.VisitorName.Trim();
+        if (string.IsNullOrWhiteSpace(visitorName) ||
+            visitorName.Equals("Visitor", StringComparison.OrdinalIgnoreCase))
+        {
+            visitorName = user?.FullName ?? visitorName;
+        }
+
+        var visitDate = request.VisitDate;
+        if (visitDate.Kind == DateTimeKind.Unspecified)
+            visitDate = DateTime.SpecifyKind(visitDate, DateTimeKind.Utc);
+        visitDate = new DateTime(visitDate.Year, visitDate.Month, visitDate.Day, 0, 0, 0, DateTimeKind.Utc);
+
         var booking = new Booking
         {
             Id = Guid.NewGuid(),
@@ -40,10 +62,10 @@ public class BookingsController : ControllerBase
             TicketNumber = request.TicketNumber.Trim(),
             LocationId = request.LocationId.Trim(),
             LocationName = request.LocationName.Trim(),
-            VisitorName = request.VisitorName.Trim(),
-            VisitorEmail = request.VisitorEmail.Trim(),
+            VisitorName = visitorName,
+            VisitorEmail = visitorEmail,
             VisitorPhone = request.VisitorPhone?.Trim(),
-            VisitDate = request.VisitDate,
+            VisitDate = visitDate,
             Guests = request.Guests,
             TotalPaid = request.TotalPaid,
             Status = "Confirmed",
@@ -53,7 +75,7 @@ public class BookingsController : ControllerBase
         _db.Bookings.Add(booking);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return Ok(new ApiResponse<BookingResponse>(true, ToResponse(booking), "Booking created successfully"));
+        return Ok(new ApiResponse<BookingResponse>(true, ToResponse(booking, user?.Email), "Booking created successfully"));
     }
 
     [HttpGet("my")]
@@ -71,7 +93,15 @@ public class BookingsController : ControllerBase
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        return Ok(new ApiResponse<List<BookingResponse>>(true, bookings.Select(ToResponse).ToList()));
+        var accountEmail = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.Email)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return Ok(new ApiResponse<List<BookingResponse>>(
+            true,
+            bookings.Select(b => ToResponse(b, accountEmail)).ToList()));
     }
 
     [HttpGet]
@@ -84,22 +114,45 @@ public class BookingsController : ControllerBase
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        return Ok(new ApiResponse<List<BookingResponse>>(true, bookings.Select(ToResponse).ToList()));
+        var userIds = bookings.Select(b => b.UserId).Distinct().ToList();
+        var userEmails = await _db.Users
+            .AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.Email, cancellationToken);
+
+        var responses = bookings
+            .Select(b =>
+            {
+                userEmails.TryGetValue(b.UserId, out var accountEmail);
+                return ToResponse(b, accountEmail);
+            })
+            .ToList();
+
+        return Ok(new ApiResponse<List<BookingResponse>>(true, responses));
     }
 
-    private static BookingResponse ToResponse(Booking b) =>
-        new(
+    private static BookingResponse ToResponse(Booking b, string? accountEmail = null)
+    {
+        var email = b.VisitorEmail;
+        if (string.IsNullOrWhiteSpace(email) ||
+            email.Equals("unknown@example.com", StringComparison.OrdinalIgnoreCase))
+        {
+            email = accountEmail ?? email;
+        }
+
+        return new(
             b.Id,
             b.UserId,
             b.TicketNumber,
             b.LocationId,
             b.LocationName,
             b.VisitorName,
-            b.VisitorEmail,
+            email,
             b.VisitorPhone,
             b.VisitDate,
             b.Guests,
             b.TotalPaid,
             b.Status,
             b.CreatedAt);
+    }
 }

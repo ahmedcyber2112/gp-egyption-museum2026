@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Mic, Camera, Sparkles, ScanLine, Volume2, Image as ImageIcon, History } from 'lucide-react';
 import { isLoggedIn } from '../../lib/authStorage';
 import { consumePostLoginAction, setPostLoginAction, setPostLoginRedirect } from '../../lib/authGate';
+import { sendAiChat } from '../../lib/aiApi';
 import LoginRequiredModal from '../Auth/LoginRequiredModal';
 
 // --- 1. خريطة تحويل الحروف الإنجليزية إلى هيروغليفية (للمترجم) ---
@@ -31,10 +32,12 @@ export default function AIAssistant() {
   const [isListening, setIsListening] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  
-  // Refs للتحكم في السكرول
+  const [sessionId] = useState(() => `web-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
+  const [pendingImage, setPendingImage] = useState(null);
+
   const chatContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // السكرول الذكي (زي Gemini)
   const scrollToBottom = () => {
@@ -84,42 +87,57 @@ export default function AIAssistant() {
     return false;
   };
 
-  // --- منطق محاكاة ذكاء الـ AI ---
-  const handleSend = (text) => {
+  const handleSend = async (text, imagePayload = null) => {
     if (!requireAiAuth({ mode: 'text', text })) return;
-    if (!text.trim() && !isScanning) return;
-    
-    const userMsg = { id: Date.now(), sender: 'user', text };
-    setMessages(prev => [...prev, userMsg]);
+    const trimmed = (text || '').trim();
+    const image = imagePayload || pendingImage;
+    if (!trimmed && !image) return;
+
+    const userMsg = {
+      id: Date.now(),
+      sender: 'user',
+      text: trimmed || 'Analyze this artifact image.',
+      imagePreview: image?.previewUrl || null,
+    };
+    setMessages((prev) => [...prev, userMsg]);
     setInput('');
+    setPendingImage(null);
     setIsTyping(true);
+    if (isScanning) setIsScanning(false);
 
-    // محاكاة تأخير التفكير للـ AI
-    setTimeout(() => {
-      let aiResponse = { id: Date.now() + 1, sender: 'ai', text: '', isHieroglyph: false, isScanResult: false };
-
-      // 1. حالة الترجمة الهيروغليفية
-      if (text.toLowerCase().includes('translate')) {
-        const nameToTranslate = text.split(':')[1]?.trim() || "Visitor";
-        aiResponse.isHieroglyph = true;
-        aiResponse.text = `Here is how the Ancient Egyptians would write '${nameToTranslate}':`;
-        aiResponse.hieroglyphText = translateToHieroglyphs(nameToTranslate);
-      } 
-      // 2. حالة الفحص البصري (Artifact Scanner)
-      else if (isScanning) {
-        aiResponse.isScanResult = true;
-        aiResponse.text = "I have analyzed the image. This is the magnificent Bust of Nefertiti, crafted around 1345 BCE by the sculptor Thutmose.";
-        aiResponse.image = "/assets/images/ai-curator.png"; // تأكد من مسار الصورة
-        setIsScanning(false);
-      }
-      // 3. حالة الرد العادي
-      else {
-        aiResponse.text = "Fascinating question! The Ancient Egyptians believed in the eternal journey of the soul. Would you like to know more about our artifacts or rituals?";
-      }
-
-      setMessages(prev => [...prev, aiResponse]);
+    try {
+      const res = await sendAiChat({
+        message: trimmed || 'Analyze this artifact image.',
+        sessionId,
+        imageBase64: image?.base64 || null,
+        imageMimeType: image?.mimeType || null,
+      });
+      const reply = res?.data?.reply || res?.message || 'No reply from the AI service.';
+      const isHieroglyph = trimmed.toLowerCase().includes('translate') && !image;
+      const aiResponse = {
+        id: Date.now() + 1,
+        sender: 'ai',
+        text: reply,
+        isHieroglyph,
+        isScanResult: Boolean(image),
+        hieroglyphText: isHieroglyph
+          ? translateToHieroglyphs(trimmed.split(':')[1]?.trim() || 'Visitor')
+          : undefined,
+        image: image?.previewUrl || null,
+      };
+      setMessages((prev) => [...prev, aiResponse]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          sender: 'ai',
+          text: err?.message || 'Could not reach the AI assistant. Sign in and try again.',
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 2000);
+    }
   };
 
   // محاكاة وضع المايكروفون الصوتي
@@ -132,14 +150,35 @@ export default function AIAssistant() {
     }, 3000);
   };
 
-  // محاكاة الماسح الضوئي للصور
   const handleImageUpload = () => {
     if (!requireAiAuth({ mode: 'scan' })) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !file.type.startsWith('image/')) return;
+
     setIsScanning(true);
-    setInput("Uploading artifact image for analysis...");
-    setTimeout(() => {
-      handleSend("Analyze this artifact");
-    }, 1500);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+      const comma = dataUrl.indexOf(',');
+      const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+      const payload = {
+        base64,
+        mimeType: file.type,
+        previewUrl: dataUrl,
+      };
+      setPendingImage(payload);
+      setIsScanning(false);
+      handleSend(input.trim() || 'Analyze this artifact image.', payload);
+    };
+    reader.onerror = () => {
+      setIsScanning(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -240,6 +279,12 @@ export default function AIAssistant() {
                     {msg.text}
                   </p>
 
+                  {msg.imagePreview && (
+                    <div className="mt-3 rounded-xl overflow-hidden border border-black/20">
+                      <img src={msg.imagePreview} alt="Uploaded" className="max-h-40 w-full object-cover" />
+                    </div>
+                  )}
+
                   {/* المترجم الهيروغليفي */}
                   {msg.isHieroglyph && (
                     <div className="mt-4 p-4 bg-black/50 border border-[#D4AF37]/30 rounded-xl">
@@ -304,9 +349,16 @@ export default function AIAssistant() {
             {/* إشعاع خلف الـ Input */}
             <div className="absolute inset-0 bg-[#D4AF37] rounded-2xl blur-md opacity-10 group-focus-within:opacity-25 transition-opacity duration-500"></div>
             
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileSelected}
+            />
+
             <div className="relative bg-[#111] border border-white/10 rounded-2xl p-2 flex items-center gap-2 shadow-2xl">
               
-              {/* زر الماسح الضوئي */}
               <button 
                 onClick={handleImageUpload}
                 disabled={isScanning || isTyping}
@@ -321,7 +373,7 @@ export default function AIAssistant() {
                 placeholder="Consult the Oracle or ask for a translation..." 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend(input)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend(input, pendingImage)}
                 disabled={isScanning || isListening}
                 className="flex-1 bg-transparent border-none text-white focus:ring-0 px-2 placeholder:text-gray-600 outline-none"
               />
@@ -338,7 +390,7 @@ export default function AIAssistant() {
 
               {/* زر الإرسال */}
               <button 
-                onClick={() => handleSend(input)}
+                onClick={() => handleSend(input, pendingImage)}
                 disabled={!input.trim() || isScanning || isTyping}
                 className="p-3 bg-[#D4AF37] text-black rounded-xl hover:bg-[#b5952f] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(212,175,55,0.3)]"
               >

@@ -272,7 +272,7 @@ export default function ArtifactDetails() {
                             <Info size={20} className="text-[#D4AF37]" />{" "}
                             Historical Context
                         </h3>
-                        <p className="text-gray-400 leading-relaxed text-lg italic">
+                        <p className="text-gray-400 leading-relaxed text-lg italic break-words whitespace-pre-wrap max-w-full overflow-hidden">
                             {artifact.historicalContext?.trim()
                                 ? artifact.historicalContext
                                 : `This magnificent piece, belonging to the ${artifact.period}, was discovered in ${artifact.discoverySite === "Unknown Site" ? "an unregistered location" : artifact.discoverySite}. It stands as a testament to the craftsmanship of ancient Egypt.`}
@@ -409,7 +409,9 @@ function SpecCard({
             <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">
                 {label}
             </div>
-            <div className="text-sm font-bold text-gray-200">{value}</div>
+            <div className="text-sm font-bold text-gray-200 break-words overflow-hidden">
+                {value}
+            </div>
         </div>
     );
 }
