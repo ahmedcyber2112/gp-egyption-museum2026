@@ -112,6 +112,16 @@ export async function apiRequest(path, options = {}) {
             if (candidateResponse.status === 404 && base !== lastBase) {
                 continue;
             }
+            // Some deployments misconfigure NEXT_PUBLIC_API_BASE_URL to a frontend host
+            // that returns HTML with 200 OK. In that case payload is null (non-JSON) and
+            // we should try other candidate API hosts.
+            if (
+                candidateResponse.ok &&
+                candidatePayload === null &&
+                base !== lastBase
+            ) {
+                continue;
+            }
 
             response = candidateResponse;
             payload = candidatePayload;
