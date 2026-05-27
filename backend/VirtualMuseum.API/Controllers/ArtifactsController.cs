@@ -31,8 +31,62 @@ public class ArtifactsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<ArtifactResponseDto>>), 200)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        var artifacts = await _artifactService.GetAllAsync(cancellationToken);
-        var response = artifacts.Select(MapArtifact).ToList();
+        // IMPORTANT: Do not load full object graphs for list endpoints (can be extremely slow on shared hosting).
+        // Fetch the minimal shape needed by the UI in a single query.
+        var response = await _db.Artifacts
+            .AsNoTracking()
+            .Include(a => a.Era)
+            .Include(a => a.Category)
+            .Include(a => a.Material)
+            .Include(a => a.DiscoveryLocation)
+            .Include(a => a.ModelFile)
+            .Include(a => a.ThumbnailFile)
+            .Include(a => a.Translations)
+            .Select(a => new ArtifactResponseDto(
+                a.Id,
+                a.Slug,
+                a.EraId,
+                a.CategoryId,
+                a.MaterialId,
+                a.DiscoveryLocationId,
+                a.ModelFileId,
+                a.ThumbnailFileId,
+                a.Height,
+                a.Width,
+                a.Depth,
+                a.Weight,
+                a.CreatedBy,
+                a.CreatedAt,
+                a.Era == null ? null : new NamedRefDto(a.Era.Id, a.Era.Name),
+                a.Category == null ? null : new NamedRefDto(a.Category.Id, a.Category.Name),
+                a.Material == null ? null : new NamedRefDto(a.Material.Id, a.Material.Name),
+                a.DiscoveryLocation == null ? null : new DiscoveryLocationDto(
+                    a.DiscoveryLocation.Id,
+                    a.DiscoveryLocation.Name,
+                    a.DiscoveryLocation.Latitude,
+                    a.DiscoveryLocation.Longitude),
+                a.ModelFile == null ? null : new FileDto(
+                    a.ModelFile.Id,
+                    a.ModelFile.FileName,
+                    a.ModelFile.FileType,
+                    a.ModelFile.Url,
+                    a.ModelFile.StorageProvider),
+                a.ThumbnailFile == null ? null : new FileDto(
+                    a.ThumbnailFile.Id,
+                    a.ThumbnailFile.FileName,
+                    a.ThumbnailFile.FileType,
+                    a.ThumbnailFile.Url,
+                    a.ThumbnailFile.StorageProvider),
+                a.Translations
+                    .Select(t => new ArtifactTranslationDto(
+                        t.Id,
+                        t.LanguageCode,
+                        t.Name,
+                        t.Description,
+                        t.HistoricalStory))
+                    .ToList()
+            ))
+            .ToListAsync(cancellationToken);
         return Ok(new ApiResponse<IEnumerable<ArtifactResponseDto>>(true, response));
     }
 
