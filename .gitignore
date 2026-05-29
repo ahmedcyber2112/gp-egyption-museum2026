@@ -1,6 +1,10 @@
 # ------------------------------------------------------------
-# Global ignores for GP-Egyption-Museum2026 (.NET + Next.js)
+# Global ignores for GP-Egyption-Museum2026 (frontend + Next.js)
+# Backend lives in https://github.com/TUSK56/museum_backend
 # ------------------------------------------------------------
+
+# Legacy local backend copy (do not commit)
+backend/
 
 # OS files
 .DS_Store
