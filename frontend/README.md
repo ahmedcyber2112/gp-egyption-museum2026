@@ -63,6 +63,10 @@ http://localhost:3000
 
 The app calls the backend API at `https://muesum-a252b23f7b32.herokuapp.com` by default. Override with `NEXT_PUBLIC_API_BASE_URL` (see `.env.example`).
 
+### Netlify
+
+Repo: **https://github.com/TUSK56/GP-Egyption-Museum2026** — see [`../NETLIFY.md`](../NETLIFY.md) if deploy fails with "Unable to access repository".
+
 ## Available Scripts
 
 - `npm run dev` - start the development server
