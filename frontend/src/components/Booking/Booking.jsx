@@ -367,7 +367,7 @@ export default function BookingPage() {
 
               <div className="space-y-4">
                 <button 
-                  onClick={() => window.location.href = "https://egymuseum.runasp.net/tours"}
+                  onClick={() => { window.location.href = "/tours"; }}
                   className="w-full py-5 bg-[#D4AF37] text-black font-black rounded-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-lg"
                 >
                   Book Private Tour Guide <ArrowRight size={20} />

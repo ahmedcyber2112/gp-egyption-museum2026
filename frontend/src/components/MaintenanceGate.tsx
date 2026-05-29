@@ -7,19 +7,15 @@ import {
     clearAuthSession,
     getCurrentUser,
 } from "../lib/authStorage";
+import { getDefaultApiBaseUrls, normalizeApiBaseUrl } from "../lib/apiConfig";
 
 function apiBaseUrls(): string[] {
     const fromEnv =
         typeof process.env.NEXT_PUBLIC_API_BASE_URL === "string"
             ? process.env.NEXT_PUBLIC_API_BASE_URL.trim()
             : "";
-    const defaults = [
-        "https://egymuseum.runasp.net",
-        "https://virtualmuseum.runasp.net",
-    ];
-
-    const list = [...(fromEnv ? [fromEnv] : []), ...defaults];
-    return [...new Set(list.map((x) => (x.endsWith("/") ? x.slice(0, -1) : x)))];
+    const list = [...(fromEnv ? [fromEnv] : []), ...getDefaultApiBaseUrls()];
+    return [...new Set(list.map(normalizeApiBaseUrl))];
 }
 
 function isExcludedPath(pathname: string): boolean {

@@ -58,8 +58,10 @@ npm run dev
 Open:
 
 ```text
-https://egymuseum.runasp.net
+http://localhost:3000
 ```
+
+The app calls the backend API at `https://muesum-a252b23f7b32.herokuapp.com` by default. Override with `NEXT_PUBLIC_API_BASE_URL` (see `.env.example`).
 
 ## Available Scripts
 

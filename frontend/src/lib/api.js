@@ -4,9 +4,11 @@ import {
     getRefreshToken,
     setAuthSession,
 } from "./authStorage";
-
-const DEFAULT_API_BASE_URL = "https://egymuseum.runasp.net";
-const FALLBACK_API_BASE_URL = "https://virtualmuseum.runasp.net";
+import {
+    DEFAULT_API_BASE_URL,
+    FALLBACK_API_BASE_URL,
+    normalizeApiBaseUrl,
+} from "./apiConfig";
 
 function getApiBaseUrl() {
     const fromPublic = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -15,8 +17,7 @@ function getApiBaseUrl() {
         typeof window === "undefined"
             ? fromInternal || fromPublic || DEFAULT_API_BASE_URL
             : fromPublic || DEFAULT_API_BASE_URL;
-    const normalized = selected.trim();
-    return normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
+    return normalizeApiBaseUrl(selected);
 }
 
 export class ApiError extends Error {

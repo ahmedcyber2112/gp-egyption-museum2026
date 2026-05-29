@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const API_BASE =
+import { DEFAULT_API_BASE_URL, normalizeApiBaseUrl } from "./lib/apiConfig";
+
+const API_BASE = normalizeApiBaseUrl(
     process.env.NEXT_INTERNAL_API_BASE_URL ||
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    "https://egymuseum.runasp.net";
+        process.env.NEXT_PUBLIC_API_BASE_URL ||
+        DEFAULT_API_BASE_URL,
+);
 
 const EXEMPT_PREFIXES = [
     "/_next",
