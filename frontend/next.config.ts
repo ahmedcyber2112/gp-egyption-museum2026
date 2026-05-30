@@ -2,7 +2,7 @@
 const remoteApi =
     process.env.NEXT_PUBLIC_API_BASE_URL ||
     process.env.NEXT_INTERNAL_API_BASE_URL ||
-    "https://museum-a252b23f7b32.herokuapp.com";
+    "https://muesum-a252b23f7b32.herokuapp.com";
 
 const nextConfig = {
   async rewrites() {

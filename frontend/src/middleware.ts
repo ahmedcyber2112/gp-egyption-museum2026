@@ -12,6 +12,7 @@ const API_BASE = normalizeApiBaseUrl(
 const EXEMPT_PREFIXES = [
     "/_next",
     "/api",
+    "/api-proxy",
     "/assets",
     "/maintenance",
     "/Signin",

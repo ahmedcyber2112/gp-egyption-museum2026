@@ -35,11 +35,13 @@ Set in Netlify → **Environment variables** (or use values from `netlify.toml`)
 | `NEXT_PUBLIC_API_BASE_URL` | `https://muesum-a252b23f7b32.herokuapp.com` |
 | `NEXT_INTERNAL_API_BASE_URL` | `https://muesum-a252b23f7b32.herokuapp.com` |
 
+**Important:** The Heroku app name is **`muesum`** (typo). The hostname `museum-a252b23f7b32.herokuapp.com` returns **404** — do not use it.
+
 ## Build settings (reference)
 
 | Setting | Value |
 |---------|--------|
 | Base directory | *(empty — use repo root)* |
 | Build command | *(from `netlify.toml`)* `npm ci && npm run build` in `frontend/` |
-| Publish directory | *(from `netlify.toml`)* `.next` under `frontend/` |
+| Publish directory | *(leave empty — `@netlify/plugin-nextjs` sets this)* |
 | Plugin | `@netlify/plugin-nextjs` |
