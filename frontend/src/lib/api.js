@@ -13,9 +13,13 @@ import {
 } from "./apiConfig";
 
 function getApiBaseUrl() {
-    // Browser: same-origin proxy (Netlify/Next rewrite → Heroku). Avoids CORS + OPTIONS 503.
+    // Browser: call Heroku directly (CORS allowed). Netlify /api-proxy often 404s if env uses wrong host.
     if (typeof window !== "undefined") {
-        return BROWSER_API_PROXY_PREFIX;
+        const fromPublic =
+            typeof process.env.NEXT_PUBLIC_API_BASE_URL === "string"
+                ? process.env.NEXT_PUBLIC_API_BASE_URL.trim()
+                : "";
+        return normalizeApiBaseUrl(fromPublic || DEFAULT_API_BASE_URL);
     }
 
     const fromInternal = process.env.NEXT_INTERNAL_API_BASE_URL;
@@ -58,6 +62,9 @@ async function sendRequest(url, method, headers, body) {
 
 function getCandidateBaseUrls() {
     const configured = getApiBaseUrl();
+    if (typeof window !== "undefined") {
+        return [configured];
+    }
     const fromEnv =
         typeof process.env.NEXT_PUBLIC_API_BASE_URL === "string"
             ? process.env.NEXT_PUBLIC_API_BASE_URL.trim()
