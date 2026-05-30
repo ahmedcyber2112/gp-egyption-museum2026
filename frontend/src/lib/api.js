@@ -35,16 +35,32 @@ async function parsePayload(response) {
     return isJson ? await response.json() : null;
 }
 
+const REQUEST_TIMEOUT_MS = 12_000;
+
 async function sendRequest(url, method, headers, body) {
-    return fetch(url, {
-        method,
-        headers,
-        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+        return await fetch(url, {
+            method,
+            headers,
+            signal: controller.signal,
+            ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        });
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 
 function getCandidateBaseUrls() {
     const configured = getApiBaseUrl();
+    const fromEnv =
+        typeof process.env.NEXT_PUBLIC_API_BASE_URL === "string"
+            ? process.env.NEXT_PUBLIC_API_BASE_URL.trim()
+            : "";
+    if (fromEnv) {
+        return [configured];
+    }
     return [...new Set([configured, DEFAULT_API_BASE_URL, FALLBACK_API_BASE_URL])];
 }
 

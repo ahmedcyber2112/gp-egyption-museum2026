@@ -51,7 +51,7 @@ export async function middleware(request: NextRequest) {
         const res = await fetch(`${API_BASE}/api/app-status`, {
             method: "GET",
             headers: { Accept: "application/json" },
-            cache: "no-store",
+            next: { revalidate: 45 },
         });
 
         if (!res.ok) {

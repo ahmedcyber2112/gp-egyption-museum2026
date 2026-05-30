@@ -1,13 +1,16 @@
 import { apiRequest } from "./api";
+import { cachedMuseumRequest } from "./museumCache";
 
 export async function getArtifacts() {
-    return apiRequest("/api/artifacts");
+    return cachedMuseumRequest("/api/artifacts", () => apiRequest("/api/artifacts"));
 }
 
 export async function getArtifactById(id) {
-    return apiRequest(`/api/artifacts/${id}`);
+    return cachedMuseumRequest(`/api/artifacts/${id}`, () =>
+        apiRequest(`/api/artifacts/${id}`),
+    );
 }
 
 export async function getCategories() {
-    return apiRequest("/api/categories");
+    return cachedMuseumRequest("/api/categories", () => apiRequest("/api/categories"));
 }

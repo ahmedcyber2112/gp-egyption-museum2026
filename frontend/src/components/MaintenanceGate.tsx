@@ -99,7 +99,7 @@ export default function MaintenanceGate() {
         evaluate();
 
         if (pathname && !isExcludedPath(pathname)) {
-            intervalRef.current = window.setInterval(() => evaluate(), 8000);
+            intervalRef.current = window.setInterval(() => evaluate(), 120_000);
         }
 
         return () => {
