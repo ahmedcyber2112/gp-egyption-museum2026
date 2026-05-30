@@ -60,7 +60,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         "/api/eras",
         "/api/materials",
       ],
-      async (key) => {
+      async (key: string) => {
         if (key === "admin:/api/artifacts") return getAdminArtifacts();
         if (key === "/api/categories") return getAdminCategories();
         if (key === "/api/eras") return getAdminEras();

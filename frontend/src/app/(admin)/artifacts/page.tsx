@@ -12,8 +12,10 @@ import {
   getAdminMaterials,
   updateArtifact,
 } from "../../../lib/adminApi";
+import { getCurrentUser } from "../../../lib/authStorage";
 import { cachedMuseumRequest, getCachedMuseumList } from "../../../lib/museumCache";
 import { useAdminCachedList } from "../../../lib/useAdminCachedList";
+import type { AdminArtifact } from "../../../types/admin";
 
 function slugify(input: string) {
   return input.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
@@ -39,7 +41,7 @@ export default function Artifacts() {
     refreshing,
     error: loadError,
     reload: reloadArtifacts,
-  } = useAdminCachedList(ADMIN_ARTIFACTS_CACHE_KEY, getAdminArtifacts);
+  } = useAdminCachedList<AdminArtifact>(ADMIN_ARTIFACTS_CACHE_KEY, getAdminArtifacts);
   const [categories, setCategories] = useState<any[]>(() =>
     getCachedMuseumList("/api/categories"),
   );
@@ -90,11 +92,15 @@ export default function Artifacts() {
     await loadLookups();
   };
 
-  const filteredArtifacts = useMemo(() => artifacts.filter(
-    (artifact) =>
-      (artifact.slug || "").toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (selectedEra === "all" || artifact.era?.name === selectedEra),
-  ), [artifacts, searchTerm, selectedEra]);
+  const filteredArtifacts = useMemo(
+    () =>
+      artifacts.filter(
+        (artifact) =>
+          (artifact.slug || "").toLowerCase().includes(searchTerm.toLowerCase()) &&
+          (selectedEra === "all" || artifact.era?.name === selectedEra),
+      ),
+    [artifacts, searchTerm, selectedEra],
+  );
 
   const openCreate = () => {
     setEditingId(null);
@@ -383,7 +389,11 @@ export default function Artifacts() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <Eye size={14} className="text-emerald-500" />
-                        <span className="text-white font-mono text-sm">{new Date(artifact.createdAt).toLocaleDateString()}</span>
+                        <span className="text-white font-mono text-sm">
+                          {artifact.createdAt
+                            ? new Date(artifact.createdAt).toLocaleDateString()
+                            : "—"}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
