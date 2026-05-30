@@ -12,3 +12,10 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# Fallback proxy if Next rewrite is not applied on Netlify edge.
+[[redirects]]
+  from = "/api-proxy/*"
+  to = "https://museum-a252b23f7b32.herokuapp.com/:splat"
+  status = 200
+  force = true
