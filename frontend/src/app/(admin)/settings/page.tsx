@@ -35,12 +35,25 @@ export default function settings() {
     const load = async () => {
       const me = getCurrentUser();
       try {
-        const [profileRes, uRes, aRes, cRes, appStatusRes] = await Promise.all([
+        const appStatusRes = await getAppStatus();
+        const maintenanceEnabled = !!appStatusRes?.data?.maintenanceEnabled;
+        setAppOpen(!maintenanceEnabled);
+        setAppCloseMessage(
+          appStatusRes?.data?.message || "The application is temporarily unavailable.",
+        );
+        setAppStatusReady(true);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Failed to load app status.";
+        setMessage(msg);
+        setAppStatusReady(true);
+      }
+
+      try {
+        const [profileRes, uRes, aRes, cRes] = await Promise.all([
           getMyProfile(),
           getAdminUsers(),
           getAdminArtifacts(),
           getAdminCategories(),
-          getAppStatus(),
         ]);
         const p = profileRes?.data || {
           fullName: me?.fullName || "",
@@ -56,12 +69,6 @@ export default function settings() {
           artifacts: Array.isArray(aRes?.data) ? aRes.data.length : 0,
           categories: Array.isArray(cRes?.data) ? cRes.data.length : 0,
         });
-        const maintenanceEnabled = !!appStatusRes?.data?.maintenanceEnabled;
-        setAppOpen(!maintenanceEnabled);
-        setAppCloseMessage(
-          appStatusRes?.data?.message || "The application is temporarily unavailable.",
-        );
-        setAppStatusReady(true);
       } catch {
         setProfile({
           fullName: me?.fullName || "",
