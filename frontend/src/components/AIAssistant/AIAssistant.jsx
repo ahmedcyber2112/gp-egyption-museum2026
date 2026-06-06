@@ -1,10 +1,11 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Mic, Camera, Sparkles, ScanLine, Volume2, Image as ImageIcon, History } from 'lucide-react';
+import { Send, Mic, Sparkles, ScanLine, Volume2, Image as ImageIcon, MessageSquarePlus } from 'lucide-react';
 import { isLoggedIn } from '../../lib/authStorage';
 import { consumePostLoginAction, setPostLoginAction, setPostLoginRedirect } from '../../lib/authGate';
 import { sendAiChat } from '../../lib/aiApi';
+import { getOrCreateAiSessionId, setStoredAiSessionId, startNewAiSession } from '../../lib/aiSessionStorage';
 import LoginRequiredModal from '../Auth/LoginRequiredModal';
 
 // --- 1. خريطة تحويل الحروف الإنجليزية إلى هيروغليفية (للمترجم) ---
@@ -32,7 +33,7 @@ export default function AIAssistant() {
   const [isListening, setIsListening] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [sessionId] = useState(() => `web-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`);
+  const [sessionId, setSessionId] = useState(() => getOrCreateAiSessionId());
   const [pendingImage, setPendingImage] = useState(null);
 
   const chatContainerRef = useRef(null);
@@ -87,6 +88,17 @@ export default function AIAssistant() {
     return false;
   };
 
+  const handleNewChat = () => {
+    const nextSessionId = startNewAiSession();
+    setSessionId(nextSessionId);
+    setMessages([]);
+    setInput('');
+    setPendingImage(null);
+    setIsTyping(false);
+    setIsScanning(false);
+    setIsListening(false);
+  };
+
   const handleSend = async (text, imagePayload = null) => {
     if (!requireAiAuth({ mode: 'text', text })) return;
     const trimmed = (text || '').trim();
@@ -113,6 +125,10 @@ export default function AIAssistant() {
         imageMimeType: image?.mimeType || null,
       });
       const reply = res?.data?.reply || res?.message || 'No reply from the AI service.';
+      if (res?.data?.sessionId) {
+        setStoredAiSessionId(res.data.sessionId);
+        setSessionId(res.data.sessionId);
+      }
       const isHieroglyph = trimmed.toLowerCase().includes('translate') && !image;
       const aiResponse = {
         id: Date.now() + 1,
@@ -235,6 +251,22 @@ export default function AIAssistant() {
 
       {/* ================= الجانب الأيمن: منطقة المحادثة ================= */}
       <div className="w-full md:w-2/3 flex flex-col h-screen relative z-10 bg-[#050505]/80 backdrop-blur-xl">
+
+        <div className="flex items-center justify-between px-8 pt-6 pb-2 border-b border-white/5">
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest truncate max-w-[70%]">
+            Session: {sessionId}
+          </p>
+          <button
+            type="button"
+            onClick={handleNewChat}
+            disabled={isTyping}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#D4AF37]/30 text-[#D4AF37] text-xs font-bold uppercase tracking-wider hover:bg-[#D4AF37]/10 transition-all disabled:opacity-50"
+            title="Start a new conversation"
+          >
+            <MessageSquarePlus size={16} />
+            New Chat
+          </button>
+        </div>
         
         {/* منطقة الرسائل */}
         <div 
