@@ -200,6 +200,7 @@ export default function CommunityPage() {
       await createCommunityPost({
         content: trimmed || "Shared an image from my visit.",
         imageUrl,
+        location: "Cairo, Egypt"
       });
 
       setNewPostText("");
