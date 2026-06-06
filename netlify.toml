@@ -8,6 +8,7 @@
   NODE_VERSION = "20"
   NEXT_PUBLIC_API_BASE_URL = "https://muesum-a252b23f7b32.herokuapp.com"
   NEXT_INTERNAL_API_BASE_URL = "https://muesum-a252b23f7b32.herokuapp.com"
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID = "776962066383-0j5eerrql7fkb7afkidtdufaa8tdi307.apps.googleusercontent.com"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

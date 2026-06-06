@@ -79,3 +79,11 @@ export function getAdminBookings() {
     return apiRequest("/api/bookings");
 }
 
+// AI chat logs (live stream from web + mobile)
+export function getAiChatLogs({ take = 50, search = "" } = {}) {
+    const params = new URLSearchParams();
+    params.set("take", String(take));
+    if (search) params.set("search", search);
+    return apiRequest(`/api/ai/logs?${params.toString()}`);
+}
+

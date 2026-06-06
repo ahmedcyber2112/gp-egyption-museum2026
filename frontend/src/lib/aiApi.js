@@ -1,6 +1,6 @@
 import { apiRequest } from "./api";
 
-export function sendAiChat({ message, sessionId, imageBase64, imageMimeType }) {
+export function sendAiChat({ message, sessionId, imageBase64, imageMimeType, source = "web" }) {
     return apiRequest("/api/ai/chat", {
         method: "POST",
         body: {
@@ -8,6 +8,7 @@ export function sendAiChat({ message, sessionId, imageBase64, imageMimeType }) {
             sessionId,
             imageBase64: imageBase64 || null,
             imageMimeType: imageMimeType || null,
+            source,
         },
     });
 }
