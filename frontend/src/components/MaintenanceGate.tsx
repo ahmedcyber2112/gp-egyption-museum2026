@@ -33,6 +33,8 @@ function isExcludedPath(pathname: string): boolean {
         p.startsWith("/forgot-password/") ||
         p === "/reset-password" ||
         p.startsWith("/reset-password/") ||
+        p === "/auth/mobile-google" ||
+        p.startsWith("/auth/mobile-google/") ||
         p === "/maintenance" ||
         p.startsWith("/maintenance/")
     ) {
