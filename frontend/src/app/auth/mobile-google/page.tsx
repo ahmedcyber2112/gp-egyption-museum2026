@@ -2,14 +2,9 @@
 
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
+import { openMobileApp } from "@/src/lib/mobileGoogleAuth";
 
 const CLIENT_ID = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "").trim();
-const APP_CALLBACK = "com.example.virtual_museum:/google-auth";
-
-function returnToApp(params: Record<string, string>) {
-  const query = new URLSearchParams(params).toString();
-  window.location.href = query ? `${APP_CALLBACK}?${query}` : APP_CALLBACK;
-}
 
 export default function MobileGoogleAuthPage() {
   const buttonRef = useRef<HTMLDivElement>(null);
@@ -18,7 +13,7 @@ export default function MobileGoogleAuthPage() {
   useEffect(() => {
     if (!CLIENT_ID) {
       setStatus("Google client is not configured on the server.");
-      returnToApp({ error: "no_client_id" });
+      openMobileApp({ error: "no_client_id" });
       return;
     }
 
@@ -35,7 +30,7 @@ export default function MobileGoogleAuthPage() {
           return;
         }
         setStatus("Could not load Google Sign-In.");
-        returnToApp({ error: "gsi_load_failed" });
+        openMobileApp({ error: "gsi_load_failed" });
         return;
       }
 
@@ -44,10 +39,10 @@ export default function MobileGoogleAuthPage() {
         callback: (response: { credential?: string }) => {
           const idToken = response?.credential;
           if (!idToken) {
-            returnToApp({ error: "no_token" });
+            openMobileApp({ error: "no_token" });
             return;
           }
-          returnToApp({ id_token: idToken });
+          openMobileApp({ id_token: idToken });
         },
         auto_select: false,
         cancel_on_tap_outside: false,
